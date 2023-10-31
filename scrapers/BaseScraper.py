@@ -8,7 +8,7 @@ class BaseScraper:
 
     headers = {
                 'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0",
-                'Connection': "keep-alive"
+                # 'Connection': "keep-alive"
     }
 
     longitude_km_ratio = 111
@@ -27,7 +27,7 @@ class BaseScraper:
         query_params = '?'
         for key, value in q_strings.items():
             query_params += f'{key}={value}&'
-        return f"{self.api_url}/{'/'.join(requests)}"
+        return f"{self.api_url}/{'/'.join(requests)}" + query_params[:-1]
     
     def km_to_long(self, km:float) -> float:
         return km/self.longitude_km_ratio

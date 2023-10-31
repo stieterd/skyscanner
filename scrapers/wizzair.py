@@ -3,18 +3,21 @@ import json
 import datetime
 from scrapers.BaseScraper import BaseScraper
 from Request import Request
+from Flight import Flight
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, DateNotAvailableException
+import pandas as pd
 
 class WizzAir(BaseScraper):
 
     url = "https://be.wizzair.com"
-    api_url = "https://be.wizzair.com/19.2.0/Api"
+    api_url = "https://be.wizzair.com/19.3.0/Api"
     
     wizz_headers = {
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0",
-        'X-RequestVerificationToken': "b368cb5ee8db4a65872b5ef92ed82f85",
-        'Origin': "https://wizzair.com",
-        'Cookie': "RequestVerificationToken=b368cb5ee8db4a65872b5ef92ed82f85",
+        'cookie': "RequestVerificationToken=10aa42acaa2d4bea88be9818666639b3",
+        'Host': "be.wizzair.com",
+        'Accept-Language': "en-US,en;q=0.5",
+        'X-RequestVerificationToken': "10aa42acaa2d4bea88be9818666639b3",
+        'TE': "trailers"
         }
 
     cities: list
@@ -27,10 +30,17 @@ class WizzAir(BaseScraper):
         Variable "cities" represents all the available destinations for wizzair airplanes
         '''
         super().__init__(self.url, self.wizz_headers, api_url=self.api_url)
-        self.cities = self._get_city_codes()
-        self.countries = self._get_country_codes()
+        
+        cities = self._get_city_codes()
+        self.connections = pd.json_normalize(cities, record_path='connections', meta=['iata', 'longitude', 'currencyCode', 'latitude', 'shortName', 'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation', 'rank', 'categories', 'isFakeStation'], record_prefix='connection_')
+        self.cities = pd.json_normalize(cities, record_path=None)
 
-    def get_possible_flights(self, request: Request) -> list[dict[str,str]]:
+        # self.cities_df.columns = ['iata', 'longitude', 'currencyCode', 'latitude', 'shortName', 'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation', 'rank', 'categories', 'isFakeStation']
+        self.countries = pd.json_normalize(self._get_country_codes(), meta=['code', 'name', 'isEu', 'isSchengen', 'phonePrefix'])
+        
+        
+
+    def get_possible_flights(self, request: Request) -> list:
         '''
         Gets the possible flighttimes and their prices for request param
         '''
@@ -69,20 +79,16 @@ class WizzAir(BaseScraper):
 
                 url = super().get_api_url('search', 'timetable')
                 re = requests.post(url, headers=super().headers, json=pl)
-                yield re.json()
-    
-    def configureRequest(self, request: Request):
-        '''
-        Configure the request so it uses the right country and city codes
-        '''
 
-        # TODO: add the radius slider
-        available_cities = []
-        for city in self.cities:
-            if city["countryName"] == request.departure_country:
-                available_cities.append(city)
-
-        
+                try:
+                    result = re.json()
+                    outbound_flights = result['outboundFlights']
+                    inbound_flights = result['returnFlights']
+                    yield Flight(pd.json_normalize(outbound_flights, max_level=1), pd.json_normalize(inbound_flights, max_level=1))
+                    
+                except Exception as e:
+                    print(re.text)
+                    yield None       
 
     def _get_country_codes(self):
         '''
@@ -90,6 +96,7 @@ class WizzAir(BaseScraper):
         '''
         url = super().get_api_url('asset', 'country', languageCode='en-gb')
         re = requests.get(url, headers=super().headers)
+        
         return re.json()['countries']
 
     def _get_city_codes(self):
@@ -107,32 +114,23 @@ class WizzAir(BaseScraper):
         '''
         Gets used country code for specific country
         '''
-        result = None
-        for country in self.countries:
-            if ',' in country['name']:
-                if super().compare_strings(country['name'].split(",")[0], country_name):
-                    result = country['code']
-                    break
-            else:
-                if super().compare_strings(country['name'], country_name):
-                    result = country['code']
-                    break
-        if result == None:
+        result = self.countries[self.countries['name'] == country_name]['code'].values
+        if len(result) == 0:
             raise CountryNotFoundException()
-        return result 
+        return result[0]
+        
 
     def _get_airports_by_country(self, request:Request) -> Request:
         '''
         Grabs all the cities in the country of original departure city
         '''
         country_code = self._get_country_code_from_name(request.departure_country)
-        for city in self.cities:
-            if self.compare_strings(city['countryCode'], country_code):
-                request.departure_locations.append(city)
-                departure_city = city
-
-        if departure_city == None:
+        departure_cities = self.cities[self.cities['countryCode'] == country_code]
+        departure_cities_json = json.loads(departure_cities.to_json(orient='records'))
+        if len(departure_cities_json) == 0:
             raise CityNotFoundException()
+        
+        request.departure_locations.extend(departure_cities_json)
         
         return request
 
@@ -141,28 +139,24 @@ class WizzAir(BaseScraper):
         Grabs all the cities within a certain radius of original departure city
         '''
         
-        departure_city = None
-        for city in self.cities:
-            if self.compare_strings(city['shortName'], request.departure_city):
-                request.departure_locations.append(city)
-                departure_city = city
-                break
+        departure_city = self.cities[self.cities['shortName'] == request.departure_city]
 
-        if departure_city == None:
+        if len(departure_city) == 0:
             raise CityNotFoundException()
         
         if request.airport_radius > 0:
-            lat_range = (departure_city['latitude'] - super().km_to_lat(request.airport_radius), departure_city['latitude'] + super().km_to_lat(request.airport_radius))
-            long_range = (departure_city['longitude'] - super().km_to_long(request.airport_radius), departure_city['longitude'] + super().km_to_long(request.airport_radius))
+            lat_range = (departure_city['latitude'].values[0] - super().km_to_lat(request.airport_radius), departure_city['latitude'].values[0] + super().km_to_lat(request.airport_radius))
+            long_range = (departure_city['longitude'].values[0] - super().km_to_long(request.airport_radius), departure_city['longitude'].values[0] + super().km_to_long(request.airport_radius))
 
-            for city in self.cities:
-                if self.compare_strings(city['shortName'], request.departure_city):
-                    continue
-                
-                if lat_range[0] < city['latitude'] < lat_range[1] and long_range[0] < city['longitude'] < long_range[1]:
-                    request.departure_locations.append(city)
+            departure_locations = self.cities[lat_range[0] < self.cities['latitude'] < lat_range[1] & long_range[0] < self.cities['longitude'] < long_range[1]]
+            departure_locations_json = json.loads(departure_locations.to_json(orient='records'))
+            request.departure_locations.extend(departure_locations_json)
 
-        return request
+            return request
+        
+        else:
+            request.departure_locations.extend(departure_city)
+            return request
 
                 
 
