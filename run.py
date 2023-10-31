@@ -17,20 +17,21 @@ request = Request(
             arrival_date_last=datetime.date(2024, 2, 15),
             airport_radius=50
             )
-
-flights:list[Flight] = []
 i = 0
+outbound_flights = pd.DataFrame()
+return_flights = pd.DataFrame()
+
 for flight in wa.get_possible_flights(request):
-    flights.append(flight)
+    outbound_flights = pd.concat([outbound_flights, flight.outbound_flights])
+    return_flights = pd.concat([return_flights, flight.return_flights])
+    
     print(i)
     i +=1 
 
-results = pd.DataFrame()
-for flight in flights:
-    results = pd.concat([results, flight.outbound_flights[flight.outbound_flights['price.amount'] < 15]], ignore_index=True)
-    #results.append(flight.outbound_flights[flight.outbound_flights['price.amount'] < 15])
+outbound_flights.sort_values('price.amount', inplace=True)
+return_flights.sort_values('price.amount', inplace=True)
 
-print(results)
+print("A")
 # for idx, possible_flight in enumerate(wa.get_possible_flights(request)):
 #     print(possible_flight)
 
