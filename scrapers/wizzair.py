@@ -6,6 +6,8 @@ from Request import Request
 from Flight import Flight
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, DateNotAvailableException
 import pandas as pd
+import asyncio
+import concurrent.futures
 
 class WizzAir(BaseScraper):
 
@@ -38,58 +40,70 @@ class WizzAir(BaseScraper):
         # self.cities_df.columns = ['iata', 'longitude', 'currencyCode', 'latitude', 'shortName', 'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation', 'rank', 'categories', 'isFakeStation']
         self.countries = pd.json_normalize(self._get_country_codes(), meta=['code', 'name', 'isEu', 'isSchengen', 'phonePrefix'])
         
+    
+    def get_possible_flight(self, connection:dict, departure_location:dict, request: Request) -> Flight:
         
+        departure_country_code = departure_location['countryCode'] 
+        departure_city_code = departure_location['iata']
+        arrival_city_code = connection['iata']
+        
+        if request.departure_date_first == None or request.departure_date_last == None or request.arrival_date_first == None or request.arrival_date_last == None:
+            raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
+
+        pl = {  "flightList":
+                [
+                    {   
+                        "departureStation":departure_city_code,
+                        "arrivalStation":arrival_city_code,
+                        "from":request.departure_date_first.strftime("%Y-%m-%d"),
+                        "to":request.departure_date_last.strftime("%Y-%m-%d")
+                    },
+                    {
+                        "departureStation":arrival_city_code,
+                        "arrivalStation":departure_city_code,
+                        "from":request.arrival_date_first.strftime("%Y-%m-%d"),
+                        "to":request.arrival_date_last.strftime("%Y-%m-%d")
+                    }
+                ],
+                "priceType":"regular",
+                "adultCount":request.adult_count,
+                "childCount":request.child_count,
+                "infantCount":request.infant_count
+            }
+
+        url = super().get_api_url('search', 'timetable')
+        re = requests.post(url, headers=super().headers, json=pl)
+
+        try:
+            result = re.json()
+            outbound_flights = result['outboundFlights']
+            inbound_flights = result['returnFlights']
+            return Flight(pd.json_normalize(outbound_flights, max_level=1), pd.json_normalize(inbound_flights, max_level=1))
+            
+        except Exception as e:
+            print(re.text)
+            return None    
 
     def get_possible_flights(self, request: Request) -> list:
         '''
-        Gets the possible flighttimes and their prices for request param
+        Gets the possible flighttimes and their prices according to request argument
         '''
 
         request = self._get_airports_by_country(request)
+        results = []
         for departure_location in request.departure_locations:
             connections = departure_location['connections'] 
-            departure_country_code = departure_location['countryCode'] 
-            departure_city_code = departure_location['iata']
-            for connection in connections:
-                arrival_city_code = connection['iata']
-                
-                if request.departure_date_first == None or request.departure_date_last == None or request.arrival_date_first == None or request.arrival_date_last == None:
-                    raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+                threads = []
+                for connection in connections:
+                    threads.append(executor.submit(self.get_possible_flight, connection, departure_location, request))
 
-                pl = {  "flightList":
-                        [
-                            {   
-                                "departureStation":departure_city_code,
-                                "arrivalStation":arrival_city_code,
-                                "from":request.departure_date_first.strftime("%Y-%m-%d"),
-                                "to":request.departure_date_last.strftime("%Y-%m-%d")
-                            },
-                            {
-                                "departureStation":arrival_city_code,
-                                "arrivalStation":departure_city_code,
-                                "from":request.arrival_date_first.strftime("%Y-%m-%d"),
-                                "to":request.arrival_date_last.strftime("%Y-%m-%d")
-                            }
-                        ],
-                        "priceType":"regular",
-                        "adultCount":request.adult_count,
-                        "childCount":request.child_count,
-                        "infantCount":request.infant_count
-                    }
+            for idx, future in enumerate(concurrent.futures.as_completed(threads)):
+                result = future.result()
+                results.append(result)
 
-                url = super().get_api_url('search', 'timetable')
-                re = requests.post(url, headers=super().headers, json=pl)
-
-                try:
-                    result = re.json()
-                    outbound_flights = result['outboundFlights']
-                    inbound_flights = result['returnFlights']
-                    yield Flight(pd.json_normalize(outbound_flights, max_level=1), pd.json_normalize(inbound_flights, max_level=1))
-                    
-                except Exception as e:
-                    print(re.text)
-                    yield None       
-
+        return results
+    
     def _get_country_codes(self):
         '''
         Gets the lettercodes for all available wizzair countries and also the phoneNumber prefix
