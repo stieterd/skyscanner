@@ -24,6 +24,9 @@ class BaseScraper:
         self.api_url = api_url
 
     def get_api_url(self, *requests:list[str], **q_strings:dict[str, str]) -> str:
+        '''
+        
+        '''
         query_params = '?'
         for key, value in q_strings.items():
             query_params += f'{key}={value}&'
