@@ -42,6 +42,9 @@ class WizzAir(BaseScraper):
         
     
     def get_possible_flight(self, connection:dict, departure_location:dict, request: Request) -> Flight:
+        '''
+        Gets possible flights from the departure location through the connection that is given for all available dates
+        '''
         
         departure_country_code = departure_location['countryCode'] 
         departure_city_code = departure_location['iata']
@@ -76,9 +79,13 @@ class WizzAir(BaseScraper):
 
         try:
             result = re.json()
-            outbound_flights = result['outboundFlights']
-            inbound_flights = result['returnFlights']
-            return Flight(pd.json_normalize(outbound_flights, max_level=1), pd.json_normalize(inbound_flights, max_level=1))
+            outbound_flights = pd.json_normalize(result['outboundFlights'], max_level=1)
+            inbound_flights = pd.json_normalize(result['returnFlights'], max_level=1)
+
+            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
+            inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
+
+            return Flight(outbound_flights, inbound_flights)
             
         except Exception as e:
             print(re.text)
@@ -107,6 +114,8 @@ class WizzAir(BaseScraper):
     def _get_country_codes(self):
         '''
         Gets the lettercodes for all available wizzair countries and also the phoneNumber prefix
+
+        index, code, name, isEu, isSchengen, phonePrefix 
         '''
         url = super().get_api_url('asset', 'country', languageCode='en-gb')
         re = requests.get(url, headers=super().headers)
@@ -133,6 +142,16 @@ class WizzAir(BaseScraper):
             raise CountryNotFoundException()
         return result[0]
         
+    def _get_country_code_from_airport_code(self, airport_code:str) -> str:
+        '''
+        Gets used country code from its city airport code
+        '''
+        result = self.cities[self.cities['iata'] == airport_code]['countryCode'].values
+        if len(result) == 0:
+            raise CityNotFoundException()
+        
+        return result[0]
+
 
     def _get_airports_by_country(self, request:Request) -> Request:
         '''
@@ -171,7 +190,3 @@ class WizzAir(BaseScraper):
         else:
             request.departure_locations.extend(departure_city)
             return request
-
-                
-
-        
