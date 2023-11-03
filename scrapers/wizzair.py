@@ -128,7 +128,7 @@ class WizzAir(BaseScraper):
         Gets possible flights from the departure location through the connection that is given for all available dates
         '''
         
-        departure_country_code = departure_location['countryCode'] 
+        departure_country_code = departure_location['countryCode']
         departure_city_code = departure_location['iata']
         arrival_city_code = connection['iata']
         
@@ -162,12 +162,12 @@ class WizzAir(BaseScraper):
         try:
             result = re.json()
             outbound_flights = pd.json_normalize(result['outboundFlights'], max_level=1)
-            inbound_flights = pd.json_normalize(result['returnFlights'], max_level=1)
+            return_flights = pd.json_normalize(result['returnFlights'], max_level=1)
 
             outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
-            inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
+            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'])
 
-            return Flight(outbound_flights, inbound_flights)
+            return Flight(outbound_flights, return_flights)
             
         except Exception as e:
             print(re.text)
@@ -180,13 +180,19 @@ class WizzAir(BaseScraper):
         
         # TODO: called method be dependent on if radius or country of departure is chosen
         request = self._get_airports_by_country(request) 
-
+        
         results = []
         for departure_location in request.departure_locations:
             connections = departure_location['connections'] 
+            connections_df = pd.json_normalize(connections, max_level=1)
+            if request.arrival_country != None:
+                connections_df['arrivalCountryCode'] = connections_df.apply(lambda x: self._get_country_code_from_airport_code(x['iata']), axis=1)
+                connections_df = connections_df[connections_df['arrivalCountryCode'] == self._get_country_code_from_name(request.arrival_country)].reset_index(drop=True)
+            
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
                 threads = []
-                for connection in connections:
+                for idx, connection in connections_df.iterrows():
                     threads.append(executor.submit(self.get_possible_flight, connection, departure_location, request))
 
             for idx, future in enumerate(concurrent.futures.as_completed(threads)):

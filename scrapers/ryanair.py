@@ -126,7 +126,7 @@ class RyanAir(BaseScraper):
             request.departure_locations.extend(departure_city)
             return request
 
-    def get_possible_flight(self, departure_date:str, arrival_date:str, request:Request) -> dict:
+    def get_possible_flight(self, departure_location:dict, departure_date:str, arrival_date:str, request:Request) -> dict:
         
         url = super().get_api_url('booking', 
                                   'v4', 
@@ -136,8 +136,8 @@ class RyanAir(BaseScraper):
                                   TEEN=0,
                                   CHD=request.child_count,
                                   INF=request.infant_count,
-                                  ORIGIN='AMS',
-                                  Destination="DUB",
+                                  ORIGIN=departure_location['iataCode'],
+                                  Destination=departure_location['routes'],
                                   promoCode='',
                                   IncludeConnectingFlights='false',
                                   Disc=0,
@@ -152,8 +152,16 @@ class RyanAir(BaseScraper):
                                   )
         
         re = requests.get(url, headers=super().headers)
-        return re.json()
-    
+        try:
+            result = re.json()
+            outbound_flights = pd.json_normalize(result['trips'][0]['dates'], 'flights', max_level=4)
+            return_flights = pd.json_normalize(result['trips'][1]['dates'], 'flights', max_level=4)
+            return Flight(outbound_flights, return_flights)
+        
+        except Exception as e:
+            print(re.text)
+            return None    
+        
     def get_possible_flights(self, request: Request) -> list:
         '''
         Gets the possible flighttimes and their prices according to request argument
@@ -167,15 +175,26 @@ class RyanAir(BaseScraper):
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             threads = []
+            # The api of ryanair starts looking 4 days in the past and 2 days in the future from requested day
             cur_date_departure = cur_date_departure + datetime.timedelta(days=4)
-            while cur_date_departure + datetime.timedelta(days=2) <= request.arrival_date_last :
-                pass
+            cur_date_arrival = cur_date_arrival + datetime.timedelta(days=4)
             
-            for departure_location in request.departure_locations:
-                threads.append(executor.submit(self.get_possible_flight, departure_location, request))
+            while cur_date_departure + datetime.timedelta(days=2) < request.departure_date_last and cur_date_arrival + datetime.timedelta(days=2) < request.arrival_date_last:
+                
+                
 
-            for idx, future in enumerate(concurrent.futures.as_completed(threads)):
-                result = future.result()
-                results.append(result)
+                if cur_date_departure + datetime.timedelta(days=2) < request.departure_date_last:
+                    cur_date_departure += datetime.timedelta(days=1)
+                
+                if cur_date_arrival + datetime.timedelta(days=2) < request.arrival_date_last:
+                    cur_date_arrival += datetime.timedelta(days=1)
+
+            
+                for departure_location in request.departure_locations:
+                    threads.append(executor.submit(self.get_possible_flight, departure_location, cur_date_departure, cur_date_arrival, request))
+
+                for idx, future in enumerate(concurrent.futures.as_completed(threads)):
+                    result = future.result()
+                    results.append(result)
 
         return results
