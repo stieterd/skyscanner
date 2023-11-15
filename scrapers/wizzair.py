@@ -9,11 +9,12 @@ from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotA
 import pandas as pd
 import asyncio
 import concurrent.futures
+from dateutil.relativedelta import relativedelta
 
 
 class WizzAir(BaseScraper):
     url = "https://be.wizzair.com"
-    api_url = "https://be.wizzair.com/19.4.0/Api"
+    api_url = "https://be.wizzair.com/19.5.0/Api"
 
     headers = {
         'cookie': "RequestVerificationToken=10aa42acaa2d4bea88be9818666639b3",
@@ -79,39 +80,58 @@ class WizzAir(BaseScraper):
         """
 
         departure_country_code = departure_location['countryCode']
+
         departure_city_code = departure_location['iata']
         arrival_city_code = connection['iata']
 
         if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
             raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
 
-        pl = {"flightList": [
-                {
-                    "departureStation": departure_city_code,
-                    "arrivalStation": arrival_city_code,
-                    "from": request.departure_date_first.strftime("%Y-%m-%d"),
-                    "to": request.departure_date_last.strftime("%Y-%m-%d")
-                },
-                {
-                    "departureStation": arrival_city_code,
-                    "arrivalStation": departure_city_code,
-                    "from": request.arrival_date_first.strftime("%Y-%m-%d"),
-                    "to": request.arrival_date_last.strftime("%Y-%m-%d")
-                }
-            ],
-                "priceType": "regular",
-                "adultCount": request.adult_count,
-                "childCount": request.child_count,
-                "infantCount": request.infant_count
-        }
+        cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(request.departure_date_first)
+        cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(request.arrival_date_first)
+        payloads = []
 
-        url = super().get_api_url('search', 'timetable')
-        re = requests.post(url, headers=self.headers, json=pl)
+        while cur_departure_date1 < request.departure_date_last or cur_arrival_date1 < request.arrival_date_last:
+            pl = {"flightList": [
+                    {
+                        "departureStation": departure_city_code,
+                        "arrivalStation": arrival_city_code,
+                        "from": cur_departure_date1.strftime("%Y-%m-%d"),
+                        "to": cur_departure_date2.strftime("%Y-%m-%d")
+                    },
+                    {
+                        "departureStation": arrival_city_code,
+                        "arrivalStation": departure_city_code,
+                        "from": cur_arrival_date1.strftime("%Y-%m-%d"),
+                        "to": cur_arrival_date2.strftime("%Y-%m-%d")
+                    }
+                ],
+                    "priceType": "regular",
+                    "adultCount": request.adult_count,
+                    "childCount": request.child_count,
+                    "infantCount": request.infant_count
+            }
+            payloads.append(pl)
+            cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(cur_departure_date1 + relativedelta(months=1))
+            cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(cur_arrival_date1 + relativedelta(months=1))
+
+        fares_outbound = []
+        fares_return = []
+        for pl in payloads:
+            url = super().get_api_url('search', 'timetable')
+            re = requests.post(url, headers=self.headers, json=pl)
+            try:
+                fares_outbound.extend(re.json()['outboundFlights'])
+                fares_return.extend(re.json()['returnFlights'])
+            except Exception as e:
+                print(re.text)
+                print(e)
+                print()
 
         try:
-            result = re.json()
-            outbound_flights = pd.json_normalize(result['outboundFlights'], max_level=1)
-            return_flights = pd.json_normalize(result['returnFlights'], max_level=1)
+            # result = re.json()
+            outbound_flights = pd.json_normalize(fares_outbound, max_level=1)
+            return_flights = pd.json_normalize(fares_return, max_level=1)
 
             outbound_flights = outbound_flights.explode('departureDates')
             return_flights = return_flights.explode('departureDates')
@@ -137,7 +157,8 @@ class WizzAir(BaseScraper):
             return Flight(outbound_flights, return_flights)
 
         except Exception as e:
-            print(re.text)
+            # print(re.text)
+            print(e)
             return Flight.empty_flight()
 
     def get_possible_flights(self, request: Request) -> list:

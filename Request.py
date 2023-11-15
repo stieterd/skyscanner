@@ -33,6 +33,8 @@ class Request:
     earliest_travel_time: datetime.time
     latest_travel_time: datetime.time
 
+    max_price_per_flight: int
+
     def __init__(self, adult_count: int = 1, child_count: int = 0, infant_count: int = 0,
                  departure_country: str = None, departure_city: str = None, arrival_country: str = None,
                  arrival_city: str = None,
@@ -40,7 +42,8 @@ class Request:
                  arrival_date_first: datetime.date = None, arrival_date_last: datetime.date = None,
                  days_stay: int = None, airport_radius: float = 0,
                  max_travel_time: datetime.time = None, earliest_travel_time: datetime.time = None,
-                 latest_travel_time: datetime.time = None
+                 latest_travel_time: datetime.time = None,
+                 max_price_per_flight: int = 0
                  ) -> None:
         """
         Initializes the class.
@@ -68,6 +71,8 @@ class Request:
 
         self.departure_locations = []
         self.arrival_locations = []
+
+        self.max_price_per_flight = max_price_per_flight
 
     def __str__(self):
         """

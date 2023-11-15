@@ -120,3 +120,16 @@ class BaseScraper:
     def finalize_departure_locations(self, request: Request):
         request.departure_locations = json.loads(request.departure_locations.to_json(orient='records'))
         return request
+
+    def diff_month(self, d1: datetime.date, d2: datetime.date):
+        return (d1.year - d2.year) * 12 + d1.month - d2.month
+
+    def find_first_and_last_day(self, input_date: datetime.date) -> [datetime.date, datetime.date]:
+        # Find the first day of the month
+        first_day = datetime.date(input_date.year, input_date.month, 1)
+
+        # Find the last day of the month
+        next_month = datetime.date(input_date.year + (input_date.month // 12), ((input_date.month % 12) + 1), 1)
+        last_day = next_month - datetime.timedelta(days=1)
+
+        return first_day, last_day

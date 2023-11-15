@@ -9,6 +9,7 @@ from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotA
 import pandas as pd
 import asyncio
 import concurrent.futures
+from dateutil.relativedelta import relativedelta
 
 
 class RyanAir(BaseScraper):
@@ -80,107 +81,79 @@ class RyanAir(BaseScraper):
         re = requests.get(url, headers=self.headers)
         return re.json()
 
-    # def _get_country_code_from_name(self, country_name: str) -> str:
-    #     """
-    #     Gets used country code for specific country
-    #     """
-    #     result = self.countries[self.countries['name'] == country_name]['code'].values
-    #     if len(result) == 0:
-    #         raise CountryNotFoundException()
-    #     return result[0]
-    #
-    # def _get_country_code_from_airport_code(self, airport_code: str) -> str:
-    #     """
-    #     Gets used country code from its city airport code
-    #     """
-    #     result = self.airports[self.airports['code'] == airport_code]['country.code'].values
-    #     if len(result) == 0:
-    #         raise CityNotFoundException()
-    #
-    #     return result[0]
-    #
-    # def _get_airports_by_country(self, request: Request) -> Request:
-    #     """
-    #     Grabs all the cities in the country of original departure city
-    #     """
-    #     country_code = self._get_country_code_from_name(request.departure_country)
-    #     departure_cities = self.connections[self.connections['countryCode'] == country_code]
-    #     departure_cities_json = json.loads(departure_cities.to_json(orient='records'))
-    #     if len(departure_cities_json) == 0:
-    #         raise CityNotFoundException()
-    #
-    #     request.departure_locations.extend(departure_cities_json)
-    #
-    #     return request
-    #
-    # def _get_airports_by_radius(self, request: Request) -> Request:
-    #     """
-    #     Grabs all the cities within a certain radius of original departure city
-    #     """
-    #
-    #     departure_city = self.connections[self.connections['name'] == request.departure_city]
-    #
-    #     if len(departure_city) == 0:
-    #         raise CityNotFoundException()
-    #
-    #     if request.airport_radius > 0:
-    #         lat_range = (departure_city['coordinates.latitude'].values[0] - super().km_to_lat(request.airport_radius),
-    #                      departure_city['latitude'].values[0] + super().km_to_lat(request.airport_radius))
-    #         long_range = (departure_city['longitude'].values[0] - super().km_to_long(request.airport_radius),
-    #                       departure_city['longitude'].values[0] + super().km_to_long(request.airport_radius))
-    #
-    #         departure_locations = self.connections[
-    #             lat_range[0] < self.connections['coordinates.latitude'] < lat_range[1] & long_range[0] <
-    #             self.connections['coordinates.longitude'] < long_range[1]]
-    #         departure_locations_json = json.loads(departure_locations.to_json(orient='records'))
-    #         request.departure_locations.extend(departure_locations_json)
-    #
-    #         return request
-    #
-    #     else:
-    #         request.departure_locations.extend(departure_city)
-    #         return request
-
     def get_possible_flight(self, departure_location: dict, request: Request) -> Flight:
-        # url = "https://www.ryanair.com/api/farfnd/v4/oneWayFares/DUB/AMS/cheapestPerDay?outboundMonthOfDate=2024-01-02&currency=EUR"
-        url_outbound = super().get_api_url("farfnd",
-                                           "v4",
-                                           "oneWayFares",
-                                           f"{departure_location['iata']}",
-                                           f"{departure_location['routes']}",
-                                           "cheapestPerDay",
-                                           outboundMonthOfDate=request.departure_date_first.strftime("%Y-%m-%d"),
-                                           currency="EUR")
 
-        url_return = super().get_api_url("farfnd",
-                                         "v4",
-                                         "oneWayFares",
-                                         f"{departure_location['routes']}",
-                                         f"{departure_location['iata']}",
-                                         "cheapestPerDay",
-                                         outboundMonthOfDate=request.arrival_date_first.strftime("%Y-%m-%d"),
-                                         currency="EUR")
+        cur_departure_date = request.departure_date_first
+        cur_arrival_date = request.arrival_date_first
 
-        re_outbound = requests.get(url_outbound, headers=self.headers)
-        re_return = requests.get(url_return, headers=self.headers)
+        urls_outbound = []
+        urls_return = []
+
+        while cur_departure_date < request.departure_date_last:
+            url_outbound = super().get_api_url("farfnd",
+                                               "v4",
+                                               "oneWayFares",
+                                               f"{departure_location['iata']}",
+                                               f"{departure_location['routes']}",
+                                               "cheapestPerDay",
+                                               outboundMonthOfDate=cur_departure_date.strftime("%Y-%m-%d"),
+                                               currency="EUR")
+            urls_outbound.append(url_outbound)
+            cur_departure_date = cur_departure_date + relativedelta(months=1)
+
+        while cur_arrival_date < request.arrival_date_last:
+            url_return = super().get_api_url("farfnd",
+                                             "v4",
+                                             "oneWayFares",
+                                             f"{departure_location['routes']}",
+                                             f"{departure_location['iata']}",
+                                             "cheapestPerDay",
+                                             outboundMonthOfDate=cur_arrival_date.strftime("%Y-%m-%d"),
+                                             currency="EUR")
+            urls_return.append(url_return)
+            cur_arrival_date = cur_arrival_date + relativedelta(months=1)
+
+        fares_outbound = []
+        fares_return = []
+
+        for url in urls_outbound:
+            re = requests.get(url, headers=self.headers)
+            try:
+                fares_outbound.extend(re.json()['outbound']['fares'])
+            except Exception as e:
+                print(re.text)
+                print(e)
+                print()
+
+        for url in urls_return:
+            re = requests.get(url, headers=self.headers)
+            try:
+                fares_return.extend(re.json()['outbound']['fares'])
+            except Exception as e:
+                print(re.text)
+                print(e)
+                print()
+
+        # re_outbound = requests.get(url_outbound, headers=self.headers)
+        # re_return = requests.get(url_return, headers=self.headers)
 
         try:
-            result_outbound = re_outbound.json()
-            result_return = re_return.json()
-            outbound_flights = pd.json_normalize(result_outbound['outbound']['fares'], max_level=4)
-            return_flights = pd.json_normalize(result_return['outbound']['fares'], max_level=4)
+            # result_outbound = re_outbound.json()
+            # result_return = re_return.json()
+            outbound_flights = pd.json_normalize(fares_outbound, max_level=4)
+            return_flights = pd.json_normalize(fares_return, max_level=4)
 
             outbound_flights = outbound_flights[(outbound_flights['unavailable'] == False) & (outbound_flights['soldOut'] == False)].reset_index(drop=True)
             return_flights = return_flights[(return_flights['unavailable'] == False) & (outbound_flights['soldOut'] == False)].reset_index(drop=True)
 
             outbound_flights = outbound_flights.drop(columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit', 'price.currencySymbol'])
             return_flights = return_flights.drop(columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit', 'price.currencySymbol'])
+
             try:
                 outbound_flights = outbound_flights.drop(columns=['price'])
                 return_flights = return_flights.drop(columns=['price'])
             except Exception as e:
-                pass
-
+                print(e)
 
             outbound_flights['departureStation'] = departure_location['iata']
             outbound_flights['arrivalStation'] = departure_location['routes']
@@ -201,8 +174,6 @@ class RyanAir(BaseScraper):
 
         except Exception as e:
             print(e)
-            print(re_outbound.text)
-            print(re_return.text)
             return Flight.empty_flight()
 
     def get_possible_flights(self, request: Request) -> list:
