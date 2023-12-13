@@ -1,5 +1,6 @@
 import datetime
 import json
+import copy
 
 
 class Request:
@@ -43,7 +44,7 @@ class Request:
                  days_stay: int = None, airport_radius: float = 0,
                  max_travel_time: datetime.time = None, earliest_travel_time: datetime.time = None,
                  latest_travel_time: datetime.time = None,
-                 max_price_per_flight: int = 0
+                 max_price_per_flight: int = 99999999
                  ) -> None:
         """
         Initializes the class.
@@ -78,7 +79,26 @@ class Request:
         """
         Returns a json string of the object
         """
-        return json.dumps(vars(self))
+        return json.dumps(vars(self), default=self._date_json_encoder)
+
+    def split_up_for_layovers(self) -> ["Request", "Request"]:
+        kwargs = vars(self)
+        del kwargs['departure_locations']
+        del kwargs['arrival_locations']
+
+        request1 = Request(**kwargs)
+        request2 = Request(**kwargs)
+
+        request1.arrival_country = None
+        request2.departure_country = request2.arrival_country
+        request2.arrival_country = None
+
+        return request1, request2
+
+    @staticmethod
+    def _date_json_encoder(value: datetime.datetime) -> str:
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            return value.isoformat()
 
 
 if __name__ == "__main__":

@@ -170,6 +170,22 @@ class RyanAir(BaseScraper):
             outbound_flights['company'] = self.company_name
             return_flights['company'] = self.company_name
 
+            try:
+                outbound_flights['departureCountryCode'] = outbound_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+            except Exception as e:
+                pass
+
+            try:
+                return_flights['departureCountryCode'] = return_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                return_flights['arrivalCountryCode'] = return_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+            except Exception as e:
+                pass
+
             return Flight(outbound_flights, return_flights)
 
         except Exception as e:

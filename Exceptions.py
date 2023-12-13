@@ -10,3 +10,6 @@ class TimeNotAvailableException(Exception):
 
 class DateNotAvailableException(Exception):
     pass
+
+class WizzairApiVersionNotFoundException(Exception):
+    pass

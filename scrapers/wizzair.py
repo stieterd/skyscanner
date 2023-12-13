@@ -5,16 +5,16 @@ from scrapers.BaseScraper import BaseScraper
 from Request import Request
 from Flight import Flight
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
-    DateNotAvailableException
+    DateNotAvailableException, WizzairApiVersionNotFoundException
 import pandas as pd
 import asyncio
 import concurrent.futures
 from dateutil.relativedelta import relativedelta
-
+import re
 
 class WizzAir(BaseScraper):
     url = "https://be.wizzair.com"
-    api_url = "https://be.wizzair.com/19.5.0/Api"
+    # api_url = "https://be.wizzair.com/19.5.0/Api"
 
     headers = {
         'cookie': "RequestVerificationToken=10aa42acaa2d4bea88be9818666639b3",
@@ -39,6 +39,8 @@ class WizzAir(BaseScraper):
         Variable "countries" represents all countries that can be traveled to with wizzair
         """
 
+        self.api_url = f"https://be.wizzair.com/{self.detect_api_version()}/Api"
+
         cities = self._get_city_codes()
         self.connections = pd.json_normalize(cities, record_path='connections',
                                              meta=['iata', 'longitude', 'currencyCode', 'latitude', 'shortName',
@@ -52,6 +54,20 @@ class WizzAir(BaseScraper):
 
         super().__init__(self.url, self.headers, self.airports, self.countries, api_url=self.api_url)
 
+    def detect_api_version(self) -> str:
+        r = requests.get("https://wizzair.com/buildnumber", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
+        pattern = r'\bhttps://be\.wizzair\.com/(\d+\.\d+\.\d+)\b'
+        match = re.search(pattern, r.text)
+        # Extract the desired substring
+        if match:
+            result = match.group(1)
+            return result
+        else:
+            print("No match found.")
+            raise WizzairApiVersionNotFoundException("Wizzair api version not found")
+
+
+
     def _get_country_codes(self):
         """
         Gets the lettercodes for all available wizzair countries and also the phoneNumber prefix
@@ -59,9 +75,9 @@ class WizzAir(BaseScraper):
         index, code, name, isEu, isSchengen, phonePrefix
         """
         url = super().get_api_url('asset', 'country', languageCode='en-gb')
-        re = requests.get(url, headers=self.headers)
+        r = requests.get(url, headers=self.headers)
 
-        return re.json()['countries']
+        return r.json()['countries']
 
     def _get_city_codes(self):
         """
@@ -71,8 +87,8 @@ class WizzAir(BaseScraper):
         connections, aliases, isExcludedFromGeoLocation, rank, categories, isFakeStation
         """
         url = super().get_api_url('asset', 'map', languageCode='en-gb')
-        re = requests.get(url, headers=self.headers)
-        return re.json()['cities']
+        r = requests.get(url, headers=self.headers)
+        return r.json()['cities']
 
     def get_possible_flight(self, connection: dict, departure_location: dict, request: Request) -> Flight:
         """
@@ -119,12 +135,12 @@ class WizzAir(BaseScraper):
         fares_return = []
         for pl in payloads:
             url = super().get_api_url('search', 'timetable')
-            re = requests.post(url, headers=self.headers, json=pl)
+            r = requests.post(url, headers=self.headers, json=pl)
             try:
-                fares_outbound.extend(re.json()['outboundFlights'])
-                fares_return.extend(re.json()['returnFlights'])
+                fares_outbound.extend(r.json()['outboundFlights'])
+                fares_return.extend(r.json()['returnFlights'])
             except Exception as e:
-                print(re.text)
+                print(r.text)
                 print(e)
                 print()
 
@@ -142,8 +158,6 @@ class WizzAir(BaseScraper):
             outbound_flights = outbound_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
             return_flights = return_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
 
-            outbound_flights['arrivalDate'] = None
-            return_flights['arrivalDate'] = None
 
             outbound_flights = outbound_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
             return_flights = return_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
@@ -153,6 +167,27 @@ class WizzAir(BaseScraper):
 
             outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
             return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'])
+
+            outbound_flights['arrivalDate'] = outbound_flights['departureDate'] + datetime.timedelta(hours=3)
+            return_flights['arrivalDate'] = return_flights['departureDate'] + datetime.timedelta(hours=3)
+
+            try:
+                outbound_flights['departureCountryCode'] = outbound_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+            except Exception as e:
+                print(e)
+                pass
+
+            try:
+                return_flights['departureCountryCode'] = return_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                return_flights['arrivalCountryCode'] = return_flights.apply(
+                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+            except Exception as e:
+                print(e)
+                pass
 
             return Flight(outbound_flights, return_flights)
 
@@ -224,5 +259,5 @@ class WizzAir(BaseScraper):
             "wdc": True
         }
 
-        re = requests.post(url, headers=self.headers, json=pl)
-        return re.json()
+        r = requests.post(url, headers=self.headers, json=pl)
+        return r.json()
