@@ -22,7 +22,7 @@ def testing():
 
     request = Request(
         departure_country="Netherlands",
-        # arrival_country="Germany",
+
         departure_date_first=datetime.date(2024, 1, 15),
         departure_date_last=datetime.date(2024, 1, 21),
         arrival_date_first=datetime.date(2024, 1, 15),
@@ -32,7 +32,8 @@ def testing():
     )
 
     ra = RyanAir()
-    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
+    possible_flights_ra = ra.get_possible_flights(request)
+    result_flight_ra = sum(possible_flights_ra, start=Flight.empty_flight())
 
     wa = WizzAir()
     result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
@@ -66,7 +67,7 @@ def testing():
     #         outbound_layover_first['arrivalDate_x'] < outbound_layover_first['departureDate_y']].reset_index(drop=True)
     # except Exception as e:
     #     print("empty flight records")
-
+    #
     #
     # while True:
     #
@@ -79,6 +80,8 @@ def testing():
     #         ]
     #
     #     print(returnfl)
+
+    ### direct flights ###
 
     flight = result_flight_wa + result_flight_ra
     filtered_flight = flight.filter_flights(request)
