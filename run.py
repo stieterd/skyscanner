@@ -27,7 +27,7 @@ def testing():
         departure_date_last=datetime.date(2024, 1, 21),
         arrival_date_first=datetime.date(2024, 1, 15),
         arrival_date_last=datetime.date(2024, 1, 21),
-        days_stay=6,
+        days_stay=5,
         # max_price_per_flight=25
     )
 
@@ -82,7 +82,7 @@ def testing():
 
     flight = result_flight_wa + result_flight_ra
     filtered_flight = flight.filter_flights(request)
-
+    filtered_flight.outbound_flights['n_returnflights'] = filtered_flight.outbound_flights.apply(lambda row: len(filtered_flight.get_possible_return_flights(row.name, request)), axis=1)
     while True:
 
         idx = int(input("Give me the index"))
