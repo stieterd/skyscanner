@@ -83,6 +83,7 @@ def testing():
     flight = result_flight_wa + result_flight_ra
     filtered_flight = flight.filter_flights(request)
     filtered_flight.outbound_flights['n_returnflights'] = filtered_flight.outbound_flights.apply(lambda row: len(filtered_flight.get_possible_return_flights(row.name, request)), axis=1)
+
     while True:
 
         idx = int(input("Give me the index"))
