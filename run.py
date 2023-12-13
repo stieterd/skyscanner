@@ -27,7 +27,7 @@ def testing():
         departure_date_last=datetime.date(2024, 1, 21),
         arrival_date_first=datetime.date(2024, 1, 15),
         arrival_date_last=datetime.date(2024, 1, 21),
-        days_stay=5,
+        days_stay=6,
         # max_price_per_flight=25
     )
 
@@ -86,6 +86,11 @@ def testing():
     flight = result_flight_wa + result_flight_ra
     filtered_flight = flight.filter_flights(request)
     filtered_flight.outbound_flights['n_returnflights'] = filtered_flight.outbound_flights.apply(lambda row: len(filtered_flight.get_possible_return_flights(row.name, request)), axis=1)
+    filtered_flight.outbound_flights = filtered_flight.outbound_flights[
+        filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
+
+    filtered_flight.outbound_flights['total_cost'] = filtered_flight.outbound_flights.apply(lambda row: row['price'] + (filtered_flight.get_possible_return_flights(row.name, request))['price'].values[0], axis=1)
+
 
     while True:
 

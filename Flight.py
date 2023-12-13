@@ -23,6 +23,9 @@ class Flight:
             outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
             inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
 
+            outbound_flights['departureDay'] = pd.to_datetime(outbound_flights['departureDay'])
+            inbound_flights['departureDay'] = pd.to_datetime(inbound_flights['departureDay'])
+
         self.return_flights = inbound_flights.reset_index(drop=True)
         self.outbound_flights = outbound_flights.reset_index(drop=True)
 
@@ -77,7 +80,7 @@ class Flight:
 
     def get_possible_return_flights(self, idx, request: Request):
         self.return_flights['travel_days'] = (
-                self.return_flights['departureDate'] - self.outbound_flights['departureDate'].values[idx]).dt.days
+                self.return_flights['departureDay'] - self.outbound_flights['departureDay'].values[idx]).dt.days
         returnfl = self.return_flights[
             (self.return_flights['departureStation'] == self.outbound_flights['arrivalStation'].values[idx]) &
             (self.return_flights['departureDate'] > pd.to_datetime(
