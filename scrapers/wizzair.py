@@ -46,6 +46,8 @@ class WizzAir(BaseScraper):
                                              meta=['iata', 'longitude', 'currencyCode', 'latitude', 'shortName',
                                                    'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation',
                                                    'rank', 'categories', 'isFakeStation'], record_prefix='connection_')
+        self.connections = self.connections.rename(columns={'connection_iata': 'routes'})
+
         self.airports = pd.json_normalize(cities, record_path=None)
 
         # self.cities_df.columns = ['iata', 'longitude', 'currencyCode', 'latitude', 'shortName', 'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation', 'rank', 'categories', 'isFakeStation']

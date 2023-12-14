@@ -21,22 +21,26 @@ def testing():
     start_time = time.time()
 
     request = Request(
-        departure_country="Netherlands",
+        departure_city="Eindhoven",
 
-        departure_date_first=datetime.date(2024, 1, 15),
-        departure_date_last=datetime.date(2024, 1, 21),
-        arrival_date_first=datetime.date(2024, 1, 15),
-        arrival_date_last=datetime.date(2024, 1, 21),
-        days_stay=6,
+        departure_date_first=datetime.date(2024, 3, 1),
+        departure_date_last=datetime.date(2024, 4, 1),
+        arrival_date_first=datetime.date(2024, 3, 1),
+        arrival_date_last=datetime.date(2024, 4, 1),
+        min_days_stay=3,
+        max_days_stay=6,
+        airport_radius=100,
         # max_price_per_flight=25
     )
+
+
+    wa = WizzAir()
+    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
+
 
     ra = RyanAir()
     possible_flights_ra = ra.get_possible_flights(request)
     result_flight_ra = sum(possible_flights_ra, start=Flight.empty_flight())
-
-    wa = WizzAir()
-    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
 
     ## layover flights ##
 

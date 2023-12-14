@@ -41,7 +41,7 @@ class Request:
                  arrival_city: str = None,
                  departure_date_first: datetime.date = None, departure_date_last: datetime.date = None,
                  arrival_date_first: datetime.date = None, arrival_date_last: datetime.date = None,
-                 days_stay: int = None, airport_radius: float = 0,
+                 min_days_stay: int = None, max_days_stay: int = None, airport_radius: float = 0,
                  max_travel_time: datetime.time = None, earliest_travel_time: datetime.time = None,
                  latest_travel_time: datetime.time = None,
                  max_price_per_flight: int = 99999999
@@ -63,7 +63,8 @@ class Request:
         self.arrival_date_first = arrival_date_first
         self.arrival_date_last = arrival_date_last
 
-        self.days_stay = days_stay
+        self.min_days_stay = min_days_stay
+        self.max_days_stay = max_days_stay
         self.airport_radius = airport_radius
 
         self.max_travel_time = max_travel_time

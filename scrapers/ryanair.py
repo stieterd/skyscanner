@@ -40,7 +40,7 @@ class RyanAir(BaseScraper):
         self.connections = self.connections.explode('routes')
         self.connections = self.connections[self.connections["routes"].str.contains("airport:") == True]
         self.connections['routes'] = self.connections['routes'].str.replace('airport:', '')
-        self.connections = self.connections.rename(columns={'iataCode': 'iata'})
+        self.connections = self.connections.rename(columns={'iataCode': 'iata', 'seoName': 'shortName', 'coordinates.latitude': 'latitude', 'coordinates.longitude': 'longitude'})
 
         self.countries = countries_df.groupby(
             ['country.code', 'country.iso3code', 'country.name', 'country.currency', 'country.defaultAirportCode',

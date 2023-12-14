@@ -89,8 +89,12 @@ class Flight:
         returnfl = returnfl[returnfl['travel_days'] >= 0].reset_index(
             drop=True)
 
-        if request.days_stay:
-            returnfl = returnfl[returnfl['travel_days'] >= request.days_stay].reset_index(
+        if request.min_days_stay:
+            returnfl = returnfl[returnfl['travel_days'] >= request.min_days_stay].reset_index(
+            drop=True)
+
+        if request.max_days_stay:
+            returnfl = returnfl[returnfl['travel_days'] < request.max_days_stay].reset_index(
             drop=True)
 
         return returnfl

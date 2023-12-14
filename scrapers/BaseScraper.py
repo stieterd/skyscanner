@@ -93,7 +93,7 @@ class BaseScraper:
         Grabs all the cities within a certain radius of original departure city
         """
 
-        departure_city = request.departure_locations[request.departure_locations['shortName'] == request.departure_city]
+        departure_city = request.departure_locations[request.departure_locations.shortName.str.lower() == request.departure_city.lower()]
 
         if len(departure_city) == 0:
             raise CityNotFoundException()
@@ -105,9 +105,14 @@ class BaseScraper:
                           departure_city['longitude'].values[0] + self.km_to_long(request.airport_radius))
 
             departure_locations = request.departure_locations[
-                lat_range[0] < request.departure_locations['latitude'] < lat_range[1] &
-                long_range[0] < request.departure_locations['longitude'] < long_range[1]
+                (lat_range[0] < request.departure_locations['latitude']) & (request.departure_locations['latitude'] < lat_range[1]) &
+                (long_range[0] < request.departure_locations['longitude']) & (request.departure_locations['longitude'] < long_range[1])
                 ]
+
+            # return_locations = pd.DataFrame()
+            # for city in departure_locations.iata.unique():
+            #     pd.concat([return_locations, request.departure_locations[request.departure_locations['routes'] == city]])
+
             # departure_locations_json = json.loads(departure_locations.to_json(orient='records'))
             # request.departure_locations.extend(departure_locations_json)
             request.departure_locations = departure_locations
