@@ -24,6 +24,7 @@ class FlightRequest(BaseModel):
     min_days_stay: int | None = None
     max_days_stay: int | None = None
     airport_radius: int | None = None
+    max_price_per_flight: int | None = 99999999
 
     @field_validator("departure_date_first", "departure_date_last", "arrival_date_first", "arrival_date_last")
     def string_to_date(cls, v: object) -> object:
