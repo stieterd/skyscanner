@@ -2,6 +2,10 @@ import datetime
 import json
 import copy
 
+import pandas
+
+from Airport import Airport
+
 
 class Request:
     """
@@ -49,14 +53,20 @@ class Request:
         """
         Initializes the class.
         """
+
         self.adult_count = adult_count
         self.child_count = child_count
         self.infant_count = infant_count
 
         self.departure_country = departure_country
         self.departure_city = departure_city
+        self.departure_iata = None
+        self.departure_icao = None
+
         self.arrival_country = arrival_country
         self.arrival_city = arrival_city
+        self.arrival_iata = None
+        self.arrival_icao = None
 
         self.departure_date_first = departure_date_first
         self.departure_date_last = departure_date_last
@@ -81,6 +91,52 @@ class Request:
         Returns a json string of the object
         """
         return json.dumps(vars(self), default=self._date_json_encoder)
+
+    def get_requested_departure_airports_df(self) -> pandas.DataFrame:
+        """
+        @return: Dataframe containing available departure airports
+        """
+
+        if self.departure_city != None:
+
+            iata = self.departure_city
+            departure_airports_df = Airport.get_airports_by_iata(iata)
+
+            if self.airport_radius > 0:
+                lat = departure_airports_df.at[0, 'lat']
+                long = departure_airports_df.at[0, 'lon']
+                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+
+            else:
+                return departure_airports_df
+
+        if self.departure_country != None:
+
+            departure_airports_df = Airport.get_airports_by_country(self.departure_country)
+            return departure_airports_df
+
+    def get_requested_arrival_airports_df(self) -> pandas.DataFrame:
+        """
+        @return: Dataframe containing available departure airports
+        """
+
+        if self.arrival_city != None:
+
+            iata = self.arrival_city
+            arrival_airports_df = Airport.get_airports_by_iata(iata)
+
+            if self.airport_radius > 0:
+                lat = arrival_airports_df.at[0, 'lat']
+                long = arrival_airports_df.at[0, 'lon']
+                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+
+            else:
+                return arrival_airports_df
+
+        if self.arrival_country != None:
+
+            arrival_airports_df = Airport.get_airports_by_country(self.arrival_country)
+            return arrival_airports_df
 
     def split_up_for_layovers(self) -> ["Request", "Request"]:
         kwargs = vars(self)

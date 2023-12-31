@@ -4,6 +4,7 @@ import time
 
 import pandas as pd
 
+from Airport import Airport
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
     DateNotAvailableException
 
@@ -18,13 +19,10 @@ class BaseScraper:
     api_url: str
     headers: dict
 
-    def __init__(self, base_url, headers, airports, countries, api_url=None) -> None:
+    def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url
         self.api_url = api_url
-
-        self.airports = airports
-        self.countries = countries
 
     def get_headers(self):
         return self.headers
@@ -45,82 +43,6 @@ class BaseScraper:
 
     def compare_strings(self, string1: str, string2: str) -> bool:
         return string1.lower().strip() == string2.lower().strip()
-
-    def get_countrycode_from_name(self, country_name: str) -> str:
-        result = self.countries[self.countries['name'] == country_name]['code'].values
-        if len(result) == 0:
-            raise CountryNotFoundException()
-        return result[0]
-
-    def get_countrycode_from_airport_code(self, airport_code: str) -> str:
-        """
-        Gets used country code from its city airport code
-        """
-        result = self.airports[self.airports['iata'] == airport_code]['countryCode'].values
-        if len(result) == 0:
-            raise CityNotFoundException()
-
-        return result[0]
-
-    def filter_arrival_airports_by_country(self, request: Request, connections_df) -> pd.DataFrame:
-        if request.arrival_country is not None:
-            connections_df['arrivalCountryCode'] = connections_df.apply(
-                lambda x: self.get_countrycode_from_airport_code(x['iata']), axis=1)
-            connections_df = connections_df[
-                connections_df['arrivalCountryCode'] == self.get_countrycode_from_name(
-                    request.arrival_country)].reset_index(drop=True)
-        return connections_df
-
-    def filter_departure_airports_by_country(self, request: Request) -> Request:
-        """
-        Grabs all the cities in the country of original departure city
-        """
-
-        if request.departure_country is not None:
-            country_code = self.get_countrycode_from_name(request.departure_country)
-            departure_cities = request.departure_locations[request.departure_locations['countryCode'] == country_code]
-            # departure_cities_json = json.loads(departure_cities.to_json(orient='records'))
-            if len(departure_cities) == 0:
-                raise CityNotFoundException()
-
-            # request.departure_locations.extend(departure_cities_json)
-            request.departure_locations = departure_cities
-
-        return request
-
-    def filter_departure_airports_by_radius(self, request: Request):
-        """
-        Grabs all the cities within a certain radius of original departure city
-        """
-
-        departure_city = request.departure_locations[request.departure_locations.shortName.str.lower() == request.departure_city.lower()]
-
-        if len(departure_city) == 0:
-            raise CityNotFoundException()
-
-        if request.airport_radius > 0:
-            lat_range = (departure_city['latitude'].values[0] - self.km_to_lat(request.airport_radius),
-                         departure_city['latitude'].values[0] + self.km_to_lat(request.airport_radius))
-            long_range = (departure_city['longitude'].values[0] - self.km_to_long(request.airport_radius),
-                          departure_city['longitude'].values[0] + self.km_to_long(request.airport_radius))
-
-            departure_locations = request.departure_locations[
-                (lat_range[0] < request.departure_locations['latitude']) & (request.departure_locations['latitude'] < lat_range[1]) &
-                (long_range[0] < request.departure_locations['longitude']) & (request.departure_locations['longitude'] < long_range[1])
-                ]
-
-            # return_locations = pd.DataFrame()
-            # for city in departure_locations.iata.unique():
-            #     pd.concat([return_locations, request.departure_locations[request.departure_locations['routes'] == city]])
-
-            # departure_locations_json = json.loads(departure_locations.to_json(orient='records'))
-            # request.departure_locations.extend(departure_locations_json)
-            request.departure_locations = departure_locations
-            return request
-
-        else:
-            request.departure_locations = departure_city
-            return request
 
     def finalize_departure_locations(self, request: Request):
         request.departure_locations = json.loads(request.departure_locations.to_json(orient='records'))

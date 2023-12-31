@@ -1,6 +1,9 @@
 import pandas as pd
+
+from Airport import Airport
 from Request import Request
 from scrapers.BaseScraper import BaseScraper
+
 
 class Flight:
     """
@@ -9,6 +12,8 @@ class Flight:
 
     return_flights: pd.DataFrame
     outbound_flights: pd.DataFrame
+
+    airport = Airport()
 
     def __init__(self, outbound_flights: pd.DataFrame, inbound_flights: pd.DataFrame) -> None:
 
@@ -39,6 +44,7 @@ class Flight:
         return NotImplemented
 
     def filter_flights(self, request: Request) -> "Flight":
+
         if len(self.outbound_flights) == 0 or len(self.return_flights) == 0:
             print("Nothing was found")
             return Flight.empty_flight()
@@ -70,21 +76,19 @@ class Flight:
         cheap_outbound_flights['weekday'] = cheap_outbound_flights['departureDate'].dt.day_name()
         cheap_return_flights['weekday'] = cheap_return_flights['departureDate'].dt.day_name()
 
-        # filter flights that don't have a return flight
-        cheap_outbound_flights = cheap_outbound_flights[
-            cheap_outbound_flights['arrivalStation'].isin(cheap_return_flights['departureStation'])]
-        cheap_return_flights = cheap_return_flights[
-            cheap_return_flights['departureStation'].isin(cheap_outbound_flights['arrivalStation'])]
-
         return Flight(cheap_outbound_flights, cheap_return_flights)
 
     def get_possible_return_flights(self, idx, request: Request):
+
+        iata_airport = Airport.get_airports_by_iata(self.outbound_flights['arrivalStation'].iloc[idx])
+        airports_radius_df = Airport.get_airports_by_radius(iata_airport['lon'].iloc[0], iata_airport['lat'].iloc[0], request.airport_radius)
+
         self.return_flights['travel_days'] = (
-                self.return_flights['departureDay'] - self.outbound_flights['departureDay'].values[idx]).dt.days
+                self.return_flights['departureDay'] - self.outbound_flights['departureDay'].iloc[idx]).dt.days
         returnfl = self.return_flights[
-            (self.return_flights['departureStation'] == self.outbound_flights['arrivalStation'].values[idx]) &
+            (self.return_flights['departureStation'].isin(airports_radius_df['iata'])) &
             (self.return_flights['departureDate'] > pd.to_datetime(
-                self.outbound_flights['departureDate'].values[idx]))
+                self.outbound_flights['departureDate'].iloc[idx]))
             ]
         returnfl = returnfl[returnfl['travel_days'] >= 0].reset_index(
             drop=True)

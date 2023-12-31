@@ -6,6 +6,8 @@ from Request import Request
 from Flight import Flight
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
     DateNotAvailableException, WizzairApiVersionNotFoundException
+from Airport import Airport
+
 import pandas as pd
 import asyncio
 import concurrent.futures
@@ -42,19 +44,10 @@ class WizzAir(BaseScraper):
         self.api_url = f"https://be.wizzair.com/{self.detect_api_version()}/Api"
 
         cities = self._get_city_codes()
-        self.connections = pd.json_normalize(cities, record_path='connections',
-                                             meta=['iata', 'longitude', 'currencyCode', 'latitude', 'shortName',
-                                                   'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation',
-                                                   'rank', 'categories', 'isFakeStation'], record_prefix='connection_')
-        self.connections = self.connections.rename(columns={'connection_iata': 'routes'})
 
         self.airports = pd.json_normalize(cities, record_path=None)
 
-        # self.cities_df.columns = ['iata', 'longitude', 'currencyCode', 'latitude', 'shortName', 'countryName', 'countryCode', 'aliases', 'isExcludedFromGeoLocation', 'rank', 'categories', 'isFakeStation']
-        self.countries = pd.json_normalize(self._get_country_codes(),
-                                           meta=['code', 'name', 'isEu', 'isSchengen', 'phonePrefix'])
-
-        super().__init__(self.url, self.headers, self.airports, self.countries, api_url=self.api_url)
+        super().__init__(self.url, self.headers, api_url=self.api_url)
 
     def detect_api_version(self) -> str:
         r = requests.get("https://wizzair.com/buildnumber", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
@@ -67,8 +60,6 @@ class WizzAir(BaseScraper):
         else:
             print("No match found.")
             raise WizzairApiVersionNotFoundException("Wizzair api version not found")
-
-
 
     def _get_country_codes(self):
         """
@@ -92,15 +83,13 @@ class WizzAir(BaseScraper):
         r = requests.get(url, headers=self.headers)
         return r.json()['cities']
 
-    def get_possible_flight(self, connection: dict, departure_location: dict, request: Request) -> Flight:
+    def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
         """
         Gets possible flights from the departure location through the connection that is given for all available dates
         """
 
-        departure_country_code = departure_location['countryCode']
-
-        departure_city_code = departure_location['iata']
-        arrival_city_code = connection['iata']
+        departure_city_code = departure_iata
+        arrival_city_code = arrival_iata
 
         if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
             raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
@@ -175,18 +164,18 @@ class WizzAir(BaseScraper):
 
             try:
                 outbound_flights['departureCountryCode'] = outbound_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
                 outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
             except Exception as e:
                 print(e)
                 pass
 
             try:
                 return_flights['departureCountryCode'] = return_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
                 return_flights['arrivalCountryCode'] = return_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
             except Exception as e:
                 print(e)
                 pass
@@ -202,64 +191,36 @@ class WizzAir(BaseScraper):
         """
         Gets the possible flight times and their prices according to request argument
         """
-        request.departure_locations = self.airports
+
         # TODO: called method be dependent on if radius or country of departure is chosen
-        if request.departure_country is not None:
-            request = super().filter_departure_airports_by_country(request)
-        if request.departure_city is not None:
-            request = super().filter_departure_airports_by_radius(request)
-        request = super().finalize_departure_locations(request)
+        departure_airports_df = request.get_requested_departure_airports_df()
+        connections_df = self.airports[self.airports['iata'].isin(departure_airports_df['iata'])].reset_index(drop=True)
 
         results = []
-        for departure_location in request.departure_locations:
-            # TODO: following 3 lines unnecessary if request.departure_locations keeps being a dataframe
-            connections = departure_location['connections']
-            connections_df = pd.json_normalize(connections, max_level=1)
-            connections_df = super().filter_arrival_airports_by_country(request, connections_df)
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-                threads = []
-                for idx, connection in connections_df.iterrows():
-                    threads.append(executor.submit(self.get_possible_flight, connection, departure_location, request))
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        #     threads = []
+        #     for idx, connection_row in connections_df.iterrows():
+        #         for connection in connection_row['connections']:
+        #             threads.append(executor.submit(self.get_possible_flight, connection['iata'], connection_row['iata'], request))
+        #
+        # for idx, future in enumerate(concurrent.futures.as_completed(threads)):
+        #     result = future.result()
+        #     results.append(result)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+            threads = []
+            for idx, connection_row in connections_df.iterrows():
+                connections = [connection['iata'] if 'ROM' not in connection['iata'] else 'FCO' for connection in connection_row['connections']]
+
+                if request.arrival_city:
+                    connections = [connection for connection in filter(lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), connections)]
+
+                for connection in connections:
+                    threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iata'], request))
 
             for idx, future in enumerate(concurrent.futures.as_completed(threads)):
                 result = future.result()
                 results.append(result)
 
         return results
-
-    ### BELOW ARE UNUSED FUNCTIONS, ALSO NOT WORKING PROBABLY ###
-
-    def old_get_travel_time(self, departure_date: str, connection: dict, departure_location: dict, request: Request):
-        """
-        Gets travel times for certain connection on certain dates
-
-        outboundFlights[], returnFlights[],
-        """
-
-        url = super().get_api_url('search', 'search')
-        departure_country_code = departure_location['countryCode']
-        departure_city_code = departure_location['iata']
-        arrival_city_code = connection['iata']
-
-        if request.departure_date_first is None or request.departure_date_last is None or \
-                request.arrival_date_first is None or request.arrival_date_last is None:
-            raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
-
-        pl = {
-            "isFlightChange": False,
-            "flightList": [
-                {
-                    "departureStation": departure_city_code,
-                    "arrivalStation": arrival_city_code,
-                    "departureDate": departure_date
-                }
-            ],
-            "adultCount": request.adult_count,
-            "childCount": request.child_count,
-            "infantCount": request.infant_count,
-            "wdc": True
-        }
-
-        r = requests.post(url, headers=self.headers, json=pl)
-        return r.json()

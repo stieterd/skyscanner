@@ -4,6 +4,7 @@ import datetime
 from scrapers.BaseScraper import BaseScraper
 from Request import Request
 from Flight import Flight
+from Airport import Airport
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
     DateNotAvailableException
 import pandas as pd
@@ -35,27 +36,9 @@ class RyanAir(BaseScraper):
 
         countries_df = pd.json_normalize(country_codes, max_level=1)
 
-        self.connections = pd.json_normalize(city_codes, max_level=1)
-        # self.connections['routes'] = self.connections['routes'].str.split(',', expand=False)
-        self.connections = self.connections.explode('routes')
-        self.connections = self.connections[self.connections["routes"].str.contains("airport:") == True]
-        self.connections['routes'] = self.connections['routes'].str.replace('airport:', '')
-        self.connections = self.connections.rename(columns={'iataCode': 'iata', 'seoName': 'shortName', 'coordinates.latitude': 'latitude', 'coordinates.longitude': 'longitude'})
+        self.airports = pd.json_normalize(city_codes, max_level=1)
 
-        self.countries = countries_df.groupby(
-            ['country.code', 'country.iso3code', 'country.name', 'country.currency', 'country.defaultAirportCode',
-             'country.schengen']).size().reset_index(name='count').drop(columns='count')
-        self.countries.columns = ['code', 'iso3code', 'name', 'currency', 'defaultAirportCode', 'schengen']
-
-        self.airports = countries_df.groupby(
-            ['city.name', 'city.code', 'country.code', 'country.iso3code', 'country.name', 'country.currency',
-             'coordinates.latitude', 'coordinates.longitude', 'country.defaultAirportCode',
-             'country.schengen']).size().reset_index(name='count').drop(columns='count')
-        self.airports.columns = ['name', 'iata', 'country.badcode', 'countryCode', 'country.name', 'currency',
-                                 'latitude', 'longitude', 'country.defaultAirportCode', 'schengen']
-
-
-        super().__init__(self.base_url, self.headers, self.connections, self.countries, self.api_url)
+        super().__init__(self.base_url, self.headers, self.api_url)
 
     def _get_city_codes(self):
         """
@@ -87,7 +70,7 @@ class RyanAir(BaseScraper):
         # subtracting the number of the current day brings us back one month
         return next_month - datetime.timedelta(days=next_month.day)
 
-    def get_possible_flight(self, departure_location: dict, request: Request) -> Flight:
+    def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
 
         cur_departure_date = request.departure_date_first.replace(day=1)
         cur_arrival_date = self.last_day_of_month(request.arrival_date_first)
@@ -95,19 +78,12 @@ class RyanAir(BaseScraper):
         urls = []
 
         while cur_departure_date < request.departure_date_last:
-            # url_outbound = super().get_api_url("farfnd",
-            #                                    "v4",
-            #                                    "oneWayFares",
-            #                                    f"{departure_location['iata']}",
-            #                                    f"{departure_location['routes']}",
-            #                                    "cheapestPerDay",
-            #                                    outboundMonthOfDate=cur_departure_date.strftime("%Y-%m-%d"),
-            #                                    currency="EUR")
+
             url = super().get_api_url("farfnd",
                                                "3",
                                                "roundTripFares",
-                                               f"{departure_location['iata']}",
-                                               f"{departure_location['routes']}",
+                                               departure_iata,
+                                               arrival_iata,
                                                "cheapestPerDay",
                                                ToUs='AGREED',
                                                inboundMonthOfDate=cur_arrival_date.strftime("%Y-%m-%d"),
@@ -118,21 +94,6 @@ class RyanAir(BaseScraper):
             urls.append(url)
             cur_departure_date = cur_departure_date + relativedelta(months=1)
             cur_arrival_date = cur_arrival_date + relativedelta(months=1)
-
-        # while cur_arrival_date < request.arrival_date_last:
-        #     url_return = super().get_api_url("farfnd",
-        #                                      "3",
-        #                                      "oneWayFares",
-        #                                      f"{departure_location['routes']}",
-        #                                      f"{departure_location['iata']}",
-        #                                      "cheapestPerDay",
-        #                                      ToUs='AGREED',
-        #                                      market='nl-nl',
-        #                                      outboundMonthOfDate=cur_arrival_date.strftime("%Y-%m-%d"),
-        #                                      inboundMonthOfDate=self.last_day_of_month(cur_arrival_date).strftime("%Y-%m-%d")
-        #                                      )
-        #     urls_return.append(url_return)
-        #     cur_arrival_date = cur_arrival_date + relativedelta(months=1)
 
         fares_outbound = []
         fares_return = []
@@ -153,12 +114,8 @@ class RyanAir(BaseScraper):
                 print(e)
                 print()
 
-        # re_outbound = requests.get(url_outbound, headers=self.headers)
-        # re_return = requests.get(url_return, headers=self.headers)
-
         try:
-            # result_outbound = re_outbound.json()
-            # result_return = re_return.json()
+
             outbound_flights = pd.json_normalize(fares_outbound, max_level=4)
             return_flights = pd.json_normalize(fares_return, max_level=4)
 
@@ -174,11 +131,11 @@ class RyanAir(BaseScraper):
             except Exception as e:
                 print(e)
 
-            outbound_flights['departureStation'] = departure_location['iata']
-            outbound_flights['arrivalStation'] = departure_location['routes']
+            outbound_flights['departureStation'] = departure_iata
+            outbound_flights['arrivalStation'] = arrival_iata
 
-            return_flights['departureStation'] = departure_location['routes']
-            return_flights['arrivalStation'] = departure_location['iata']
+            return_flights['departureStation'] = arrival_iata
+            return_flights['arrivalStation'] = departure_iata
 
             outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
             return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'])
@@ -191,17 +148,17 @@ class RyanAir(BaseScraper):
 
             try:
                 outbound_flights['departureCountryCode'] = outbound_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
                 outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
             except Exception as e:
                 pass
 
             try:
                 return_flights['departureCountryCode'] = return_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['departureStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
                 return_flights['arrivalCountryCode'] = return_flights.apply(
-                    lambda x: self.get_countrycode_from_airport_code(x['arrivalStation']), axis=1)
+                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
             except Exception as e:
                 pass
 
@@ -216,75 +173,36 @@ class RyanAir(BaseScraper):
         Gets the possible flight times and their prices according to request argument
         """
         # TODO: called method be dependent on if radius or country of departure is chosen
-        request.departure_locations = self.airports
-        if request.departure_country is not None:
-            request = super().filter_departure_airports_by_country(request)
-        if request.departure_city is not None:
-            request = super().filter_departure_airports_by_radius(request)
-        request = super().finalize_departure_locations(request)
+        departure_airports_df = request.get_requested_departure_airports_df()
+        connections_df = self.airports[self.airports['iataCode'].isin(departure_airports_df['iata'])]
 
         results = []
+
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        #     threads = []
+        #     # WOMP WOMP
+        #     for idx, connection_row in connections_df.iterrows():
+        #         routes = [x.split('airport:')[1] for x in filter(lambda x: 'airport' in x, connection_row['routes'])]
+        #         for connection in routes:
+        #             threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iataCode'], request))
+        #
+        #     for idx, future in enumerate(concurrent.futures.as_completed(threads)):
+        #         result = future.result()
+        #         results.append(result)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             threads = []
             # WOMP WOMP
-            for departure_location in request.departure_locations:
-                if request.arrival_country is not None and super().get_countrycode_from_name(request.arrival_country) != super().get_countrycode_from_airport_code(departure_location['routes']):
-                    continue
-                if request.arrival_city is not None and request.arrival_city != departure_location['routes']:
-                    continue
-                threads.append(executor.submit(self.get_possible_flight, departure_location, request))
+            for idx, connection_row in connections_df.iterrows():
+                routes = [x.split('airport:')[1] for x in filter(lambda x: 'airport' in x, connection_row['routes'])]
+                if request.arrival_city:
+                    routes = [connection for connection in filter(lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), routes)]
+
+                for connection in routes:
+                    threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iataCode'], request))
 
             for idx, future in enumerate(concurrent.futures.as_completed(threads)):
                 result = future.result()
                 results.append(result)
 
-        # for departure_location in request.departure_locations:
-        #     if request.arrival_country is not None and super().get_countrycode_from_name(
-        #             request.arrival_country) != super().get_countrycode_from_airport_code(departure_location['routes']):
-        #         continue
-        #     if request.arrival_city is not None and request.arrival_city != departure_location['routes']:
-        #         continue
-        #     print(departure_location)
-        #     results.append(self.get_possible_flight(departure_location, request))
-
         return results
-
-
-    ### OLD FUNCTIONS MAY NOT WORK
-    def get_possible_flight_old(self, departure_location: dict, departure_date: str, arrival_date: str,
-                                request: Request) -> Flight:
-
-        url = super().get_api_url('booking',
-                                  'v4',
-                                  'en-gb',
-                                  'availability',
-                                  ADT=request.adult_count,
-                                  TEEN=0,
-                                  CHD=request.child_count,
-                                  INF=request.infant_count,
-                                  ORIGIN=departure_location['iataCode'],
-                                  Destination=departure_location['routes'],
-                                  promoCode='',
-                                  IncludeConnectingFlights='false',
-                                  Disc=0,
-                                  DateOut=departure_date,
-                                  FlexDaysBeforeOut=4,
-                                  FlexDaysOut=2,
-                                  DateIn=arrival_date,
-                                  FlexDaysBeforeIn=4,
-                                  FlexDaysIn=2,
-                                  RoundTrip='true',
-                                  ToUs='AGREED'
-                                  )
-
-        re = requests.get(url, headers=self.headers)
-        try:
-            result = re.json()
-            outbound_flights = pd.json_normalize(result['trips'][0]['dates'], 'flights', max_level=4)
-            return_flights = pd.json_normalize(result['trips'][1]['dates'], 'flights', max_level=4)
-            return Flight(outbound_flights, return_flights)
-
-        except Exception as e:
-            print(re.text)
-            return Flight.empty_flight()
