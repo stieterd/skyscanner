@@ -137,8 +137,11 @@ class RyanAir(BaseScraper):
             return_flights['departureStation'] = arrival_iata
             return_flights['arrivalStation'] = departure_iata
 
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
-            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'])
+            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+
+            outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
+            return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
 
             outbound_flights = outbound_flights.rename(columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
             return_flights = return_flights.rename(columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
@@ -147,20 +150,38 @@ class RyanAir(BaseScraper):
             return_flights['company'] = self.company_name
 
             try:
-                outbound_flights['departureCountryCode'] = outbound_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
-                outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
+
+                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
+                                                          left_on='departureStation',
+                                                          right_on='iata', how='left')
+                outbound_flights = outbound_flights.rename(columns={'country': 'departureCountryCode'})
+
+                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
+                                                          left_on='arrivalStation',
+                                                          right_on='iata', how='left')
+                outbound_flights = outbound_flights.rename(columns={'country': 'arrivalCountryCode'})
+
             except Exception as e:
+                print(e)
                 pass
 
             try:
-                return_flights['departureCountryCode'] = return_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
-                return_flights['arrivalCountryCode'] = return_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
+                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
+                                                      left_on='departureStation',
+                                                      right_on='iata', how='left')
+                return_flights = return_flights.rename(columns={'country': 'departureCountryCode'})
+
+                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
+                                                      left_on='arrivalStation',
+                                                      right_on='iata', how='left')
+                return_flights = return_flights.rename(columns={'country': 'arrivalCountryCode'})
             except Exception as e:
+                print(e)
                 pass
+
+            unnecessary_vars = ['iata_y', 'iata_x']
+            outbound_flights = outbound_flights.drop(columns=unnecessary_vars)
+            return_flights = return_flights.drop(columns=unnecessary_vars)
 
             return Flight(outbound_flights, return_flights)
 
@@ -177,18 +198,6 @@ class RyanAir(BaseScraper):
         connections_df = self.airports[self.airports['iataCode'].isin(departure_airports_df['iata'])]
 
         results = []
-
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-        #     threads = []
-        #     # WOMP WOMP
-        #     for idx, connection_row in connections_df.iterrows():
-        #         routes = [x.split('airport:')[1] for x in filter(lambda x: 'airport' in x, connection_row['routes'])]
-        #         for connection in routes:
-        #             threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iataCode'], request))
-        #
-        #     for idx, future in enumerate(concurrent.futures.as_completed(threads)):
-        #         result = future.result()
-        #         results.append(result)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             threads = []

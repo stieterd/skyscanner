@@ -1,4 +1,5 @@
 from Airport import Airport
+from scrapers.vueling import Vueling
 from scrapers.wizzair import WizzAir
 from scrapers.ryanair import RyanAir
 from scrapers.easyjet import EasyJet
@@ -20,26 +21,32 @@ def easyjet():
     with open('a.json', 'w') as writer:
         json.dump(ej._get_city_codes(), writer, indent=3)
 
+
 def testing():
     start_time = time.time()
 
     request = Request(
         departure_city="EIN",
-        arrival_city="BCN",
-        departure_date_first=datetime.date(2024, 3, 1),
-        departure_date_last=datetime.date(2024, 3, 6),
-        arrival_date_first=datetime.date(2024, 3, 1),
-        arrival_date_last=datetime.date(2024, 3, 6),
-        # departure_date_first=datetime.date(2024, 3, 6),
-        # departure_date_last=datetime.date(2024, 3, 30),
-        # arrival_date_first=datetime.date(2024, 3, 6),
-        # arrival_date_last=datetime.date(2024, 3, 30),
+        # arrival_city="BCN",
+        # departure_date_first=datetime.date(2024, 3, 1),
+        # departure_date_last=datetime.date(2024, 3, 6),
+        # arrival_date_first=datetime.date(2024, 3, 1),
+        # arrival_date_last=datetime.date(2024, 3, 6),
+        departure_date_first=datetime.date(2024, 3, 22),
+        departure_date_last=datetime.date(2024, 3, 26),
+        arrival_date_first=datetime.date(2024, 3, 22),
+        arrival_date_last=datetime.date(2024, 3, 26),
         min_days_stay=3,
         max_days_stay=6,
         airport_radius=100,
         # max_price_per_flight=25
     )
 
+    vu = Vueling()
+    result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
+    print(time.time() - start_time)
+    print("Vueling done scraping")
+    print()
 
     wa = WizzAir()
     result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
@@ -102,7 +109,7 @@ def testing():
 
     ### direct flights ###
 
-    flight = result_flight_wa + result_flight_ra
+    flight = result_flight_wa + result_flight_ra + result_flight_vu
     filtered_flight = flight.filter_flights(request)
     print(time.time() - start_time)
     print("flights filtered")
@@ -131,8 +138,7 @@ def testing():
     print(time.time() - start_time)
 
 if __name__ == "__main__":
-    # testing()
-    easyjet()
+    testing()
 
     # https://www.ryanair.com/api/farfnd/v4/oneWayFares/DUB/AMS/cheapestPerDay?outboundMonthOfDate=2024-01-02&currency=EUR
 

@@ -165,9 +165,3 @@ class EasyJet(BaseScraper):
             # print(re.text)
             print(e)
             return Flight.empty_flight()
-
-
-if __name__ == "__main__":
-    ej = EasyJet()
-    with open('a.json', 'w') as writer:
-        json.dump(ej._get_city_codes(), writer, indent=3)
