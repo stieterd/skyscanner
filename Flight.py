@@ -17,18 +17,17 @@ class Flight:
 
     def __init__(self, outbound_flights: pd.DataFrame, inbound_flights: pd.DataFrame) -> None:
 
-        if len(outbound_flights) > 0 and len(inbound_flights) > 0:
+        if not outbound_flights.empty:
 
             outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
-            inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
-
             outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'])
-            inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
-
             outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
-            inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
-
             outbound_flights['departureDay'] = pd.to_datetime(outbound_flights['departureDay'])
+
+        if not inbound_flights.empty:
+            inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
+            inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
+            inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
             inbound_flights['departureDay'] = pd.to_datetime(inbound_flights['departureDay'])
 
         self.return_flights = inbound_flights.reset_index(drop=True)

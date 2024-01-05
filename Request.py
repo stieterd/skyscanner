@@ -40,14 +40,28 @@ class Request:
 
     max_price_per_flight: int
 
-    def __init__(self, adult_count: int = 1, child_count: int = 0, infant_count: int = 0,
-                 departure_country: str = None, departure_city: str = None, arrival_country: str = None,
+    def __init__(self,
+                 adult_count: int = 1,
+                 child_count: int = 0,
+                 infant_count: int = 0,
+
+                 departure_country: str = None,
+                 departure_city: str = None,
+                 arrival_country: str = None,
                  arrival_city: str = None,
-                 departure_date_first: datetime.date = None, departure_date_last: datetime.date = None,
-                 arrival_date_first: datetime.date = None, arrival_date_last: datetime.date = None,
-                 min_days_stay: int = None, max_days_stay: int = None, airport_radius: float = 0,
-                 max_travel_time: datetime.time = None, earliest_travel_time: datetime.time = None,
-                 latest_travel_time: datetime.time = None,
+
+                 departure_date_first: datetime.date = None,
+                 departure_date_last: datetime.date = None,
+                 arrival_date_first: datetime.date = None,
+                 arrival_date_last: datetime.date = None,
+
+                 min_days_stay: int = None,
+                 max_days_stay: int = None,
+
+                 airport_radius: float = 0,
+                 max_travel_time: datetime.time = None,  # TODO: add this one
+                 earliest_travel_time: datetime.time = None,  # TODO: add this one
+                 latest_travel_time: datetime.time = None,  # TODO: add this one
                  max_price_per_flight: int = 99999999
                  ) -> None:
         """
@@ -81,9 +95,6 @@ class Request:
         self.earliest_travel_time = earliest_travel_time
         self.latest_travel_time = latest_travel_time
 
-        self.departure_locations = []
-        self.arrival_locations = []
-
         self.max_price_per_flight = max_price_per_flight
 
     def __str__(self):
@@ -111,7 +122,6 @@ class Request:
                 return departure_airports_df
 
         if self.departure_country != None:
-
             departure_airports_df = Airport.get_airports_by_country(self.departure_country)
             return departure_airports_df
 
@@ -134,7 +144,6 @@ class Request:
                 return arrival_airports_df
 
         if self.arrival_country != None:
-
             arrival_airports_df = Airport.get_airports_by_country(self.arrival_country)
             return arrival_airports_df
 

@@ -78,17 +78,16 @@ class RyanAir(BaseScraper):
         urls = []
 
         while cur_departure_date < request.departure_date_last:
-
             url = super().get_api_url("farfnd",
-                                               "3",
-                                               "roundTripFares",
-                                               departure_iata,
-                                               arrival_iata,
-                                               "cheapestPerDay",
-                                               ToUs='AGREED',
-                                               inboundMonthOfDate=cur_arrival_date.strftime("%Y-%m-%d"),
-                                               market='nl-nl',
-                                               outboundMonthOfDate=cur_departure_date.strftime("%Y-%m-%d")
+                                      "3",
+                                      "roundTripFares",
+                                      departure_iata,
+                                      arrival_iata,
+                                      "cheapestPerDay",
+                                      ToUs='AGREED',
+                                      inboundMonthOfDate=cur_arrival_date.strftime("%Y-%m-%d"),
+                                      market='nl-nl',
+                                      outboundMonthOfDate=cur_departure_date.strftime("%Y-%m-%d")
                                       )
 
             urls.append(url)
@@ -119,14 +118,24 @@ class RyanAir(BaseScraper):
             outbound_flights = pd.json_normalize(fares_outbound, max_level=4)
             return_flights = pd.json_normalize(fares_return, max_level=4)
 
-            outbound_flights = outbound_flights.loc[~outbound_flights.unavailable].loc[~outbound_flights.soldOut].reset_index(drop=True)
-            return_flights = return_flights.loc[~return_flights.unavailable].loc[~return_flights.soldOut].reset_index(drop=True)
+            outbound_flights = outbound_flights.loc[~outbound_flights.unavailable].loc[
+                ~outbound_flights.soldOut].reset_index(drop=True)
+            return_flights = return_flights.loc[~return_flights.unavailable].loc[~return_flights.soldOut].reset_index(
+                drop=True)
 
-            outbound_flights = outbound_flights.drop(columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit', 'price.currencySymbol'])
-            return_flights = return_flights.drop(columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit', 'price.currencySymbol'])
+            outbound_flights = outbound_flights.drop(
+                columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                         'price.currencySymbol'])
+            return_flights = return_flights.drop(
+                columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                         'price.currencySymbol'])
 
             try:
                 outbound_flights = outbound_flights.drop(columns=['price'])
+            except Exception as e:
+                print(e)
+
+            try:
                 return_flights = return_flights.drop(columns=['price'])
             except Exception as e:
                 print(e)
@@ -143,45 +152,16 @@ class RyanAir(BaseScraper):
             outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
             return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
 
-            outbound_flights = outbound_flights.rename(columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
-            return_flights = return_flights.rename(columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+            outbound_flights = outbound_flights.rename(
+                columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+            return_flights = return_flights.rename(
+                columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
 
             outbound_flights['company'] = self.company_name
             return_flights['company'] = self.company_name
 
-            try:
-
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='departureStation',
-                                                          right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'departureCountryCode'})
-
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='arrivalStation',
-                                                          right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'arrivalCountryCode'})
-
-            except Exception as e:
-                print(e)
-                pass
-
-            try:
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                      left_on='departureStation',
-                                                      right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'departureCountryCode'})
-
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                      left_on='arrivalStation',
-                                                      right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'arrivalCountryCode'})
-            except Exception as e:
-                print(e)
-                pass
-
-            unnecessary_vars = ['iata_y', 'iata_x']
-            outbound_flights = outbound_flights.drop(columns=unnecessary_vars)
-            return_flights = return_flights.drop(columns=unnecessary_vars)
+            outbound_flights = super().add_country_codes(outbound_flights)
+            return_flights = super().add_country_codes(return_flights)
 
             return Flight(outbound_flights, return_flights)
 
@@ -205,10 +185,12 @@ class RyanAir(BaseScraper):
             for idx, connection_row in connections_df.iterrows():
                 routes = [x.split('airport:')[1] for x in filter(lambda x: 'airport' in x, connection_row['routes'])]
                 if request.arrival_city:
-                    routes = [connection for connection in filter(lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), routes)]
+                    routes = [connection for connection in filter(
+                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), routes)]
 
                 for connection in routes:
-                    threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iataCode'], request))
+                    threads.append(
+                        executor.submit(self.get_possible_flight, connection, connection_row['iataCode'], request))
 
             for idx, future in enumerate(concurrent.futures.as_completed(threads)):
                 result = future.result()

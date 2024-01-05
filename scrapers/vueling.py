@@ -1,3 +1,5 @@
+import traceback
+
 from Airport import Airport
 from Exceptions import DateNotAvailableException
 from Flight import Flight
@@ -86,6 +88,8 @@ class Vueling(BaseScraper):
 
         try:
             fares_outbound = r_departure.json()
+            if 'Message' in fares_outbound and fares_outbound['Message'] == "Not flights were found":
+                fares_outbound = []
         except Exception as e:
             print(r_departure.text)
             print(e)
@@ -94,6 +98,8 @@ class Vueling(BaseScraper):
 
         try:
             fares_return = r_arrival.json()
+            if 'Message' in fares_return and fares_return['Message'] == "Not flights were found":
+                fares_return = []
         except Exception as e:
             print(r_arrival.text)
             print(e)
@@ -101,78 +107,64 @@ class Vueling(BaseScraper):
             fares_return = []
 
         try:
-            # result = re.json()
             outbound_flights = pd.json_normalize(fares_outbound, max_level=1)
             return_flights = pd.json_normalize(fares_return, max_level=1)
 
-            outbound_flights = outbound_flights[~outbound_flights['IsInvalidPrice']].reset_index(drop=True)
-            return_flights = return_flights[~return_flights['IsInvalidPrice']].reset_index(drop=True)
+            if not outbound_flights.empty:
+                try:
+                    outbound_flights = outbound_flights[~outbound_flights['IsInvalidPrice']].reset_index(drop=True)
 
-            outbound_flights = outbound_flights.drop(
-                columns=['Availability', 'ClassOfService', 'Created', 'Fare',
-                         'FlightID', 'ProductClass', 'Sort', 'Tax', 'IsInvalidPrice'])
-            return_flights = return_flights.drop(
-                columns=['Availability', 'ClassOfService', 'Created', 'Fare',
-                         'FlightID', 'ProductClass', 'Sort', 'Tax', 'IsInvalidPrice'])
+                    outbound_flights = outbound_flights.drop(
+                        columns=['Availability', 'ClassOfService', 'Created', 'Fare',
+                                 'FlightID', 'ProductClass', 'Sort', 'Tax', 'IsInvalidPrice'])
+                    outbound_flights = outbound_flights.rename(
+                        columns={'ArrivalDate': 'arrivalDate', 'DepartureDate': 'departureDate',
+                                 'ArrivalStation': 'arrivalStation', 'DepartureStation': 'departureStation',
+                                 'Price': 'price'})
 
-            outbound_flights = outbound_flights.rename(
-                columns={'ArrivalDate': 'arrivalDate', 'DepartureDate': 'departureDate',
-                         'ArrivalStation': 'arrivalStation', 'DepartureStation': 'departureStation',
-                         'Price': 'price'})
-            return_flights = return_flights.rename(
-                columns={'ArrivalDate': 'arrivalDate', 'DepartureDate': 'departureDate',
-                         'ArrivalStation': 'arrivalStation', 'DepartureStation': 'departureStation',
-                         'Price': 'price'})
+                    outbound_flights['currencyCode'] = 'EUR'
+                    outbound_flights['company'] = self.company_name
 
-            outbound_flights['currencyCode'] = 'EUR'
-            return_flights['currencyCode'] = 'EUR'
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
 
-            outbound_flights['company'] = self.company_name
-            return_flights['company'] = self.company_name
+                    outbound_flights = super().add_country_codes(outbound_flights)
 
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
-            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+                except Exception as e:
+                    outbound_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
-            outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
-            return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights[~return_flights['IsInvalidPrice']].reset_index(drop=True)
+                    return_flights = return_flights.drop(
+                        columns=['Availability', 'ClassOfService', 'Created', 'Fare',
+                                 'FlightID', 'ProductClass', 'Sort', 'Tax', 'IsInvalidPrice'])
 
-            try:
+                    return_flights = return_flights.rename(
+                        columns={'ArrivalDate': 'arrivalDate', 'DepartureDate': 'departureDate',
+                                 'ArrivalStation': 'arrivalStation', 'DepartureStation': 'departureStation',
+                                 'Price': 'price'})
 
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']], left_on='departureStation',
-                                       right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'departureCountryCode'})
+                    return_flights['currencyCode'] = 'EUR'
+                    return_flights['company'] = self.company_name
 
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='arrivalStation',
-                                                          right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'arrivalCountryCode'})
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
 
-            except Exception as e:
-                print(e)
-                pass
+                    return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
 
-            try:
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='departureStation',
-                                                          right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'departureCountryCode'})
-
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='arrivalStation',
-                                                          right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'arrivalCountryCode'})
-            except Exception as e:
-                print(e)
-                pass
-
-            unnecessary_vars = ['iata_y', 'iata_x']
-            outbound_flights = outbound_flights.drop(columns=unnecessary_vars)
-            return_flights = return_flights.drop(columns=unnecessary_vars)
+                    return_flights = super().add_country_codes(return_flights)
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
             return Flight(outbound_flights, return_flights)
 
         except Exception as e:
             # print(re.text)
+            print(traceback.format_exc())
             print(e)
             return Flight.empty_flight()
 
@@ -196,6 +188,14 @@ class Vueling(BaseScraper):
             for idx, connection_row in connections_df.iterrows():
 
                 connection = connection_row['DestinationCode']
+                if connection == "LON":
+                    connection = "LGW"
+
+                if connection == "TCI":
+                    connection = "PLS"
+
+                if connection == "PAR":
+                    connection = "CDG"
 
                 if request.arrival_city and not Airport.airports_in_radius(connection, request.arrival_city, request.airport_radius):
                     continue

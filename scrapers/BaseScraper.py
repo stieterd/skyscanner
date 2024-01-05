@@ -51,6 +51,28 @@ class BaseScraper:
     def diff_month(self, d1: datetime.date, d2: datetime.date):
         return (d1.year - d2.year) * 12 + d1.month - d2.month
 
+    def add_country_codes(self, flights_df: pd.DataFrame) -> pd.DataFrame:
+        try:
+
+            flights_df = flights_df.merge(Airport.all_airports_df[['iata', 'country']],
+                                                      left_on='departureStation',
+                                                      right_on='iata', how='left')
+            flights_df = flights_df.rename(columns={'country': 'departureCountryCode'})
+
+            flights_df = flights_df.merge(Airport.all_airports_df[['iata', 'country']],
+                                                      left_on='arrivalStation',
+                                                      right_on='iata', how='left')
+            flights_df = flights_df.rename(columns={'country': 'arrivalCountryCode'})
+
+        except Exception as e:
+            print(e)
+            pass
+
+        unnecessary_vars = ['iata_y', 'iata_x']
+        flights_df = flights_df.drop(columns=unnecessary_vars)
+
+        return flights_df
+
     def find_first_and_last_day(self, input_date: datetime.date) -> [datetime.date, datetime.date]:
         # Find the first day of the month
         first_day = datetime.date(input_date.year, input_date.month, 1)

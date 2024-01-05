@@ -1,8 +1,11 @@
 from Airport import Airport
+from scrapers.volotea import Volotea
+
 from scrapers.vueling import Vueling
 from scrapers.wizzair import WizzAir
 from scrapers.ryanair import RyanAir
 from scrapers.easyjet import EasyJet
+from scrapers.transavia import Transavia
 
 from Request import Request
 import datetime
@@ -26,26 +29,32 @@ def testing():
     start_time = time.time()
 
     request = Request(
-        departure_city="EIN",
-        # arrival_city="BCN",
+        departure_city="BCN",
         # departure_date_first=datetime.date(2024, 3, 1),
         # departure_date_last=datetime.date(2024, 3, 6),
         # arrival_date_first=datetime.date(2024, 3, 1),
         # arrival_date_last=datetime.date(2024, 3, 6),
-        departure_date_first=datetime.date(2024, 3, 22),
-        departure_date_last=datetime.date(2024, 3, 26),
-        arrival_date_first=datetime.date(2024, 3, 22),
-        arrival_date_last=datetime.date(2024, 3, 26),
+        departure_date_first=datetime.date(2024, 3, 1),
+        departure_date_last=datetime.date(2024, 3, 30),
+        arrival_date_first=datetime.date(2024, 3, 1),
+        arrival_date_last=datetime.date(2024, 3, 30),
         min_days_stay=3,
         max_days_stay=6,
-        airport_radius=100,
+        airport_radius=200,
         # max_price_per_flight=25
     )
 
+    # tv = Transavia()
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
     print(time.time() - start_time)
     print("Vueling done scraping")
+    print()
+
+    vt = Volotea()
+    result_flight_vt = sum(vt.get_possible_flights(request), start=Flight.empty_flight())
+    print(time.time() - start_time)
+    print("Volotea done scraping")
     print()
 
     wa = WizzAir()
@@ -109,7 +118,7 @@ def testing():
 
     ### direct flights ###
 
-    flight = result_flight_wa + result_flight_ra + result_flight_vu
+    flight = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt
     filtered_flight = flight.filter_flights(request)
     print(time.time() - start_time)
     print("flights filtered")

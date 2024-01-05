@@ -14,8 +14,9 @@ import concurrent.futures
 from dateutil.relativedelta import relativedelta
 import re
 
+
 class WizzAir(BaseScraper):
-    url = "https://be.wizzair.com"
+    base_url = "https://be.wizzair.com"
     # api_url = "https://be.wizzair.com/19.5.0/Api"
 
     headers = {
@@ -44,13 +45,13 @@ class WizzAir(BaseScraper):
         self.api_url = f"https://be.wizzair.com/{self.detect_api_version()}/Api"
 
         cities = self._get_city_codes()
-
         self.airports = pd.json_normalize(cities, record_path=None)
 
-        super().__init__(self.url, self.headers, api_url=self.api_url)
+        super().__init__(self.base_url, self.headers, api_url=self.api_url)
 
     def detect_api_version(self) -> str:
-        r = requests.get("https://wizzair.com/buildnumber", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
+        r = requests.get("https://wizzair.com/buildnumber", headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
         pattern = r'\bhttps://be\.wizzair\.com/(\d+\.\d+\.\d+)\b'
         match = re.search(pattern, r.text)
         # Extract the desired substring
@@ -100,27 +101,29 @@ class WizzAir(BaseScraper):
 
         while cur_departure_date1 < request.departure_date_last or cur_arrival_date1 < request.arrival_date_last:
             pl = {"flightList": [
-                    {
-                        "departureStation": departure_city_code,
-                        "arrivalStation": arrival_city_code,
-                        "from": cur_departure_date1.strftime("%Y-%m-%d"),
-                        "to": cur_departure_date2.strftime("%Y-%m-%d")
-                    },
-                    {
-                        "departureStation": arrival_city_code,
-                        "arrivalStation": departure_city_code,
-                        "from": cur_arrival_date1.strftime("%Y-%m-%d"),
-                        "to": cur_arrival_date2.strftime("%Y-%m-%d")
-                    }
-                ],
-                    "priceType": "regular",
-                    "adultCount": request.adult_count,
-                    "childCount": request.child_count,
-                    "infantCount": request.infant_count
+                {
+                    "departureStation": departure_city_code,
+                    "arrivalStation": arrival_city_code,
+                    "from": cur_departure_date1.strftime("%Y-%m-%d"),
+                    "to": cur_departure_date2.strftime("%Y-%m-%d")
+                },
+                {
+                    "departureStation": arrival_city_code,
+                    "arrivalStation": departure_city_code,
+                    "from": cur_arrival_date1.strftime("%Y-%m-%d"),
+                    "to": cur_arrival_date2.strftime("%Y-%m-%d")
+                }
+            ],
+                "priceType": "regular",
+                "adultCount": request.adult_count,
+                "childCount": request.child_count,
+                "infantCount": request.infant_count
             }
             payloads.append(pl)
-            cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(cur_departure_date1 + relativedelta(months=1))
-            cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(cur_arrival_date1 + relativedelta(months=1))
+            cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(
+                cur_departure_date1 + relativedelta(months=1))
+            cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(
+                cur_arrival_date1 + relativedelta(months=1))
 
         fares_outbound = []
         fares_return = []
@@ -146,11 +149,19 @@ class WizzAir(BaseScraper):
             outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(drop=True)
             return_flights = return_flights[return_flights['priceType'] != "checkPrice"].reset_index(drop=True)
 
-            outbound_flights = outbound_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
-            return_flights = return_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
+            outbound_flights = outbound_flights.drop(
+                columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
+                         'priceType'])
+            return_flights = return_flights.drop(
+                columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
+                         'priceType'])
 
-            outbound_flights = outbound_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
-            return_flights = return_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
+            outbound_flights = outbound_flights.rename(
+                columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
+                         'departureDates': 'departureDate'})
+            return_flights = return_flights.rename(
+                columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
+                         'departureDates': 'departureDate'})
 
             outbound_flights['company'] = self.company_name
             return_flights['company'] = self.company_name
@@ -161,39 +172,8 @@ class WizzAir(BaseScraper):
             outbound_flights['arrivalDate'] = outbound_flights['departureDate'] + datetime.timedelta(hours=3)
             return_flights['arrivalDate'] = return_flights['departureDate'] + datetime.timedelta(hours=3)
 
-            try:
-
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='departureStation',
-                                                          right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'departureCountryCode'})
-
-                outbound_flights = outbound_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                          left_on='arrivalStation',
-                                                          right_on='iata', how='left')
-                outbound_flights = outbound_flights.rename(columns={'country': 'arrivalCountryCode'})
-
-            except Exception as e:
-                print(e)
-                pass
-
-            try:
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                      left_on='departureStation',
-                                                      right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'departureCountryCode'})
-
-                return_flights = return_flights.merge(Airport.all_airports_df[['iata', 'country']],
-                                                      left_on='arrivalStation',
-                                                      right_on='iata', how='left')
-                return_flights = return_flights.rename(columns={'country': 'arrivalCountryCode'})
-            except Exception as e:
-                print(e)
-                pass
-
-            unnecessary_vars = ['iata_y', 'iata_x']
-            outbound_flights = outbound_flights.drop(columns=unnecessary_vars)
-            return_flights = return_flights.drop(columns=unnecessary_vars)
+            outbound_flights = super().add_country_codes(outbound_flights)
+            return_flights = super().add_country_codes(return_flights)
 
             return Flight(outbound_flights, return_flights)
 
@@ -216,13 +196,17 @@ class WizzAir(BaseScraper):
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             threads = []
             for idx, connection_row in connections_df.iterrows():
-                connections = [connection['iata'] if 'ROM' not in connection['iata'] else 'FCO' for connection in connection_row['connections']]
+                connections = [connection['iata'] if 'ROM' not in connection['iata'] else 'FCO' for connection in
+                               connection_row['connections']]
 
                 if request.arrival_city:
-                    connections = [connection for connection in filter(lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), connections)]
+                    connections = [connection for connection in filter(
+                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius),
+                        connections)]
 
                 for connection in connections:
-                    threads.append(executor.submit(self.get_possible_flight, connection, connection_row['iata'], request))
+                    threads.append(
+                        executor.submit(self.get_possible_flight, connection, connection_row['iata'], request))
 
             for idx, future in enumerate(concurrent.futures.as_completed(threads)):
                 result = future.result()
