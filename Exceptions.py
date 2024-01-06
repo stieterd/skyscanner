@@ -13,3 +13,6 @@ class DateNotAvailableException(Exception):
 
 class WizzairApiVersionNotFoundException(Exception):
     pass
+
+class EmptyDataframeException(Exception):
+    pass

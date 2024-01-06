@@ -6,12 +6,12 @@ from Request import Request
 from Flight import Flight
 from Airport import Airport
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
-    DateNotAvailableException
+    DateNotAvailableException, EmptyDataframeException
 import pandas as pd
 import asyncio
 import concurrent.futures
 from dateutil.relativedelta import relativedelta
-
+import traceback
 
 class RyanAir(BaseScraper):
     base_url = "https://www.ryanair.com"
@@ -72,12 +72,15 @@ class RyanAir(BaseScraper):
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
 
+        if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
+            raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
+
         cur_departure_date = request.departure_date_first.replace(day=1)
-        cur_arrival_date = self.last_day_of_month(request.arrival_date_first)
+        cur_arrival_date = self.last_day_of_month(request.departure_date_first)
 
         urls = []
 
-        while cur_departure_date < request.departure_date_last:
+        while cur_departure_date < request.arrival_date_last:
             url = super().get_api_url("farfnd",
                                       "3",
                                       "roundTripFares",
@@ -117,51 +120,96 @@ class RyanAir(BaseScraper):
 
             outbound_flights = pd.json_normalize(fares_outbound, max_level=4)
             return_flights = pd.json_normalize(fares_return, max_level=4)
+            if not outbound_flights.empty:
+                try:
+                    outbound_flights = outbound_flights.loc[~outbound_flights.unavailable].loc[
+                        ~outbound_flights.soldOut].reset_index(drop=True)
 
-            outbound_flights = outbound_flights.loc[~outbound_flights.unavailable].loc[
-                ~outbound_flights.soldOut].reset_index(drop=True)
-            return_flights = return_flights.loc[~return_flights.unavailable].loc[~return_flights.soldOut].reset_index(
-                drop=True)
+                    if outbound_flights.empty:
+                        raise EmptyDataframeException("empty dataframe outbound_flights")
 
-            outbound_flights = outbound_flights.drop(
-                columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
-                         'price.currencySymbol'])
-            return_flights = return_flights.drop(
-                columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
-                         'price.currencySymbol'])
+                    outbound_flights = outbound_flights.drop(
+                        columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                                 'price.currencySymbol'])
+                    try:
+                        outbound_flights = outbound_flights.drop(columns=['price'])
+                    except Exception as e:
+                        pass
+                    outbound_flights['departureStation'] = departure_iata
+                    outbound_flights['arrivalStation'] = arrival_iata
 
-            try:
-                outbound_flights = outbound_flights.drop(columns=['price'])
-            except Exception as e:
-                print(e)
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
 
-            try:
-                return_flights = return_flights.drop(columns=['price'])
-            except Exception as e:
-                print(e)
+                    outbound_flights = outbound_flights.rename(
+                        columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+                    outbound_flights['company'] = self.company_name
 
-            outbound_flights['departureStation'] = departure_iata
-            outbound_flights['arrivalStation'] = arrival_iata
+                    outbound_flights = super().add_country_codes(outbound_flights)
 
-            return_flights['departureStation'] = arrival_iata
-            return_flights['arrivalStation'] = departure_iata
+                    ticket_url = f"https://www.ryanair.com/{super().LANGUAGE}/{super().COUNTRY}/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut="
+                    outbound_flights['ticketUrl'] = ticket_url + outbound_flights['departureDate'].dt.strftime(
+                        '%Y-%m-%d').astype(
+                        str) + f"&dateIn=&isConnectedFlight=false&discount=0&promoCode=&isReturn=false&originIata={departure_iata}&destinationIata={arrival_iata}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate=" + \
+                                                    outbound_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(
+                                                        str) + f"&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={departure_iata}&tpDestinationIata={arrival_iata}"
 
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
-            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+                except EmptyDataframeException:
+                    return_flights = pd.DataFrame()
 
-            outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
-            return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
+                except Exception as e:
 
-            outbound_flights = outbound_flights.rename(
-                columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
-            return_flights = return_flights.rename(
-                columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+                    print(traceback.format_exc())
+                    print(e)
+                    print()
+                    outbound_flights = pd.DataFrame()
 
-            outbound_flights['company'] = self.company_name
-            return_flights['company'] = self.company_name
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights.loc[~return_flights.unavailable].loc[
+                        ~return_flights.soldOut].reset_index(
+                        drop=True)
 
-            outbound_flights = super().add_country_codes(outbound_flights)
-            return_flights = super().add_country_codes(return_flights)
+                    if return_flights.empty:
+                        raise EmptyDataframeException("empty dataframe return_flights")
+
+                    return_flights = return_flights.drop(
+                        columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                                 'price.currencySymbol'])
+                    try:
+                        return_flights = return_flights.drop(columns=['price'])
+                    except Exception as e:
+                        # print(e)
+                        pass
+
+                    return_flights['departureStation'] = arrival_iata
+                    return_flights['arrivalStation'] = departure_iata
+
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+                    return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
+
+                    return_flights = return_flights.rename(
+                        columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+
+                    return_flights['company'] = self.company_name
+
+                    return_flights = super().add_country_codes(return_flights)
+
+                    ticket_url = f"https://www.ryanair.com/{super().LANGUAGE}/{super().COUNTRY}/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut="
+                    return_flights['ticketUrl'] = ticket_url + return_flights['departureDate'].dt.strftime(
+                        '%Y-%m-%d').astype(
+                        str) + f"&dateIn=&isConnectedFlight=false&discount=0&promoCode=&isReturn=false&originIata={departure_iata}&destinationIata={arrival_iata}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate=" + \
+                                                  return_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(
+                                                      str) + f"&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={departure_iata}&tpDestinationIata={arrival_iata}"
+
+                except EmptyDataframeException:
+                    return_flights = pd.DataFrame()
+
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    # print(traceback.format_exc())
+                    print(e)
+                    print()
 
             return Flight(outbound_flights, return_flights)
 
@@ -179,7 +227,7 @@ class RyanAir(BaseScraper):
 
         results = []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=super().MAX_WORKERS) as executor:
             threads = []
             # WOMP WOMP
             for idx, connection_row in connections_df.iterrows():

@@ -1,3 +1,6 @@
+import concurrent.futures
+import traceback
+
 from Airport import Airport
 from Exceptions import DateNotAvailableException
 from Flight import Flight
@@ -18,16 +21,21 @@ class EasyJet(BaseScraper):
     company_name = 'easyjet'
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-        "X-Transaction-Id": "FAB75F99-D06D-4480-6200-136EF68105AB",
-        "X-RBK-XSRF": "CB616C74DEBEF9D2AD49D0E25B3F3473E6149891",
-        "ADRUM": "isAjax:true"
+            "Host": "www.easyjet.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-Transaction-Id": "BF8FC686-3CDD-E777-DACF-3C49095D1B49",
+            "Connection": "keep-alive",
+            "Referer": "https://www.easyjet.com/nl/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin"
     }
     def __init__(self):
         airports = None
         countries = None
         # https://www.easyjet.com/ejavailability/api/v76/fps/lowestdailyfares?ArrivalIata=LPL&Currency=EUR&DateFrom=2023-12-30&DateTo=2025-12-30&DepartureIata=AMS&InboundFares=true
-        self.cities = pd.json_normalize(self._get_city_codes())
+        self.airports = pd.json_normalize(self._get_city_codes())
 
         super().__init__(self.base_url, self.headers, api_url=self.api_url)
 
@@ -48,120 +56,273 @@ class EasyJet(BaseScraper):
         else:
             return {}
 
-
-    def _get_country_codes(self):
-        """
-        Gets all the important data for all available ryanair airports:
-
-        code, name, seoName, aliases[], base, city[name], city[code], region[name], region[code],
-        country[code], country[iso3code], country[name], country[currency], country[defaultAirportCode], schengen,
-        coordinates[latitude], coordinates[longitude], timeZone
-        """
-
-        url = super().get_api_url('views', 'locate', '5', 'airports', 'en', 'active')
-        r = requests.get(url, headers=self.headers)
-        return r.json()
-
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
         """
         Gets possible flights from the departure location through the connection that is given for all available dates
+        ---
+        IMPORTANT, maximum interval time of a week
         """
-        # v76/fps/lowestdailyfares?ArrivalIata=LPL&Currency=EUR&DateFrom=2023-12-30&DateTo=2025-12-30&DepartureIata=AMS&InboundFares=true
+
         departure_city_code = departure_iata
         arrival_city_code = arrival_iata
 
         if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
             raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
 
-        cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(request.departure_date_first)
-        cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(request.arrival_date_first)
-        payloads = []
+        cur_departure_date = request.departure_date_first.replace(day=1)
+        cur_arrival_date = cur_departure_date + datetime.timedelta(weeks=1)
 
-        while cur_departure_date1 < request.departure_date_last or cur_arrival_date1 < request.arrival_date_last:
-            pl = {"flightList": [
-                    {
-                        "departureStation": departure_city_code,
-                        "arrivalStation": arrival_city_code,
-                        "from": cur_departure_date1.strftime("%Y-%m-%d"),
-                        "to": cur_departure_date2.strftime("%Y-%m-%d")
-                    },
-                    {
-                        "departureStation": arrival_city_code,
-                        "arrivalStation": departure_city_code,
-                        "from": cur_arrival_date1.strftime("%Y-%m-%d"),
-                        "to": cur_arrival_date2.strftime("%Y-%m-%d")
-                    }
-                ],
-                    "priceType": "regular",
-                    "adultCount": request.adult_count,
-                    "childCount": request.child_count,
-                    "infantCount": request.infant_count
-            }
-            payloads.append(pl)
-            cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(cur_departure_date1 + relativedelta(months=1))
-            cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(cur_arrival_date1 + relativedelta(months=1))
+        outbound_urls = []
+        return_urls = []
+
+        while cur_departure_date < request.arrival_date_last:
+            outbound_url = super().get_api_url(
+                'routepricing',
+                'v3',
+                'searchfares',
+                'GetAllFaresByDate',
+                departureAirport=departure_city_code,
+                arrivalAirport=arrival_city_code,
+                currency="EUR",
+                departureDateFrom=request.departure_date_first.strftime("%Y-%m-%d"),
+                departureDateTo=request.arrival_date_last.strftime("%Y-%m-%d")
+            )
+
+            return_url = super().get_api_url(
+                'routepricing',
+                'v3',
+                'searchfares',
+                'GetAllFaresByDate',
+                departureAirport=arrival_city_code,
+                arrivalAirport=departure_city_code,
+                currency="EUR",
+                departureDateFrom=request.departure_date_first.strftime("%Y-%m-%d"),
+                departureDateTo=request.arrival_date_last.strftime("%Y-%m-%d")
+            )
+
+            outbound_urls.append(outbound_url)
+            return_urls.append(return_url)
+
+            cur_departure_date = cur_departure_date + datetime.timedelta(weeks=1)
+            cur_arrival_date = cur_arrival_date + datetime.timedelta(weeks=1)
 
         fares_outbound = []
         fares_return = []
-        for pl in payloads:
-            url = super().get_api_url('search', 'timetable')
-            r = requests.post(url, headers=self.headers, json=pl)
+
+        for url in outbound_urls:
+            r = requests.get(url, headers=self.headers)
             try:
-                fares_outbound.extend(r.json()['outboundFlights'])
-                fares_return.extend(r.json()['returnFlights'])
+                fares_outbound.extend(r.json())
+            except Exception as e:
+                print(r.text)
+                print(e)
+                print()
+
+        for url in return_urls:
+            r = requests.get(url, headers=self.headers)
+            try:
+                fares_return.extend(r.json())
             except Exception as e:
                 print(r.text)
                 print(e)
                 print()
 
         try:
-            # result = re.json()
-            outbound_flights = pd.json_normalize(fares_outbound, max_level=1)
-            return_flights = pd.json_normalize(fares_return, max_level=1)
+            outbound_flights = pd.json_normalize(fares_outbound, max_level=4)
+            return_flights = pd.json_normalize(fares_return, max_level=4)
+            if not outbound_flights.empty:
+                try:
+                    outbound_flights = outbound_flights.loc[~outbound_flights.unavailable].loc[
+                        ~outbound_flights.soldOut].reset_index(drop=True)
+                    outbound_flights = outbound_flights.drop(
+                        columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                                 'price.currencySymbol'])
+                    try:
+                        outbound_flights = outbound_flights.drop(columns=['price'])
+                    except Exception as e:
+                        print(e)
+                    outbound_flights['departureStation'] = departure_iata
+                    outbound_flights['arrivalStation'] = arrival_iata
 
-            outbound_flights = outbound_flights.explode('departureDates')
-            return_flights = return_flights.explode('departureDates')
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
 
-            outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(drop=True)
-            return_flights = return_flights[return_flights['priceType'] != "checkPrice"].reset_index(drop=True)
+                    outbound_flights = outbound_flights.rename(
+                        columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
+                    outbound_flights['company'] = self.company_name
 
-            outbound_flights = outbound_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
-            return_flights = return_flights.drop(columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate', 'priceType'])
+                    outbound_flights = super().add_country_codes(outbound_flights)
 
+                except Exception as e:
+                    outbound_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
-            outbound_flights = outbound_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
-            return_flights = return_flights.rename(columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode', 'departureDates': 'departureDate'})
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights.loc[~return_flights.unavailable].loc[
+                        ~return_flights.soldOut].reset_index(
+                        drop=True)
 
-            outbound_flights['company'] = self.company_name
-            return_flights['company'] = self.company_name
+                    return_flights = return_flights.drop(
+                        columns=['day', 'unavailable', 'soldOut', 'price.valueMainUnit', 'price.valueFractionalUnit',
+                                 'price.currencySymbol'])
+                    try:
+                        return_flights = return_flights.drop(columns=['price'])
+                    except Exception as e:
+                        print(e)
 
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
-            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'])
+                    return_flights['departureStation'] = arrival_iata
+                    return_flights['arrivalStation'] = departure_iata
 
-            outbound_flights['arrivalDate'] = outbound_flights['departureDate'] + datetime.timedelta(hours=3)
-            return_flights['arrivalDate'] = return_flights['departureDate'] + datetime.timedelta(hours=3)
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+                    return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
 
-            try:
-                outbound_flights['departureCountryCode'] = outbound_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
-                outbound_flights['arrivalCountryCode'] = outbound_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
-            except Exception as e:
-                print(e)
-                pass
+                    return_flights = return_flights.rename(
+                        columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
 
-            try:
-                return_flights['departureCountryCode'] = return_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['departureStation']), axis=1)
-                return_flights['arrivalCountryCode'] = return_flights.apply(
-                    lambda x: Airport.get_countrycode_from_iata(x['arrivalStation']), axis=1)
-            except Exception as e:
-                print(e)
-                pass
+                    return_flights['company'] = self.company_name
+
+                    return_flights = super().add_country_codes(return_flights)
+
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
             return Flight(outbound_flights, return_flights)
 
         except Exception as e:
             # print(re.text)
+            print(traceback.format_exc())
             print(e)
             return Flight.empty_flight()
+
+    def old_get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
+        """
+        Gets possible flights from the departure location through the connection that is given for all available dates
+        """
+        # /fps/lowestdailyfares?ArrivalIata=LPL&Currency=EUR&DateFrom=2023-12-30&DateTo=2025-12-30&DepartureIata=AMS&InboundFares=true
+
+        departure_city_code = departure_iata
+        arrival_city_code = arrival_iata
+
+        if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
+            raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
+
+        fares_outbound = []
+        fares_return = []
+
+        url = super().get_api_url(
+            'v76',
+            'fps',
+            'lowestdailyfares',
+            ArrivalIata=arrival_iata,
+            Currency="EUR",
+            DateFrom=request.departure_date_first.strftime("%Y-%m-%d"),
+            DateTo=request.arrival_date_last.strftime("%Y-%m-%d"),
+            DepartureIata=departure_iata,
+            InboundFares='true'
+        )
+
+        r = requests.get(url, headers=self.headers)
+
+        try:
+            fares_outbound = r.json()['Outbound']
+        except Exception as e:
+            print(r.text)
+            print(e)
+            print()
+            fares_outbound = {}
+
+        try:
+            fares_return = r.json()['Inbound']
+        except Exception as e:
+            print(r.text)
+            print(e)
+            print()
+            fares_return = {}
+
+        try:
+            outbound_flights = pd.DataFrame(list(fares_outbound.items()), columns=['date', 'price'])
+            return_flights = pd.DataFrame(list(fares_return.items()), columns=['date', 'price'])
+
+            if not outbound_flights.empty:
+                try:
+
+                    outbound_flights['currencyCode'] = 'EUR'
+                    outbound_flights['company'] = self.company_name
+
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
+
+                    outbound_flights = super().add_country_codes(outbound_flights)
+
+                except Exception as e:
+                    outbound_flights = pd.DataFrame()
+                    print(e)
+                    print()
+
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights[~return_flights['IsInvalidPrice']].reset_index(drop=True)
+                    return_flights = return_flights.drop(
+                        columns=['Availability', 'ClassOfService', 'Created', 'Fare',
+                                 'FlightID', 'ProductClass', 'Sort', 'Tax', 'IsInvalidPrice'])
+
+                    return_flights = return_flights.rename(
+                        columns={'ArrivalDate': 'arrivalDate', 'DepartureDate': 'departureDate',
+                                 'ArrivalStation': 'arrivalStation', 'DepartureStation': 'departureStation',
+                                 'Price': 'price'})
+
+                    return_flights['currencyCode'] = 'EUR'
+                    return_flights['company'] = self.company_name
+
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+
+                    return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
+
+                    return_flights = super().add_country_codes(return_flights)
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    print(e)
+                    print()
+
+            return Flight(outbound_flights, return_flights)
+
+        except Exception as e:
+            # print(re.text)
+            print(traceback.format_exc())
+            print(e)
+            return Flight.empty_flight()
+
+    def get_possible_flights(self, request: Request) -> list:
+        """
+        Gets the possible flight times and their prices according to request argument
+        """
+
+        # TODO: called method be dependent on if radius or country of departure is chosen
+
+        departure_airports_df = request.get_requested_departure_airports_df()
+        connections_df = self.airports[self.airports['Iata'].isin(departure_airports_df['iata'])].reset_index(drop=True)
+
+        results = []
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=super().MAX_WORKERS) as executor:
+            threads = []
+            for idx, connection_row in connections_df.iterrows():
+                connections = [connection for connection in connection_row['IndirectConnections']]
+
+                if request.arrival_city:
+                    connections = [connection for connection in filter(
+                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), connections)]
+
+                for connection in connections:
+                    threads.append(
+                        executor.submit(self.get_possible_flight, connection, connection_row['Iata'], request))
+
+            for idx, future in enumerate(concurrent.futures.as_completed(threads)):
+                result = future.result()
+                results.append(result)
+
+        return results

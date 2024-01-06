@@ -183,7 +183,7 @@ class Vueling(BaseScraper):
 
         results = []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=super().MAX_WORKERS) as executor:
             threads = []
             for idx, connection_row in connections_df.iterrows():
 

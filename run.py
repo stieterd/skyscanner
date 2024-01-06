@@ -19,17 +19,12 @@ import threading
 import json
 import time
 
-def easyjet():
-    ej = EasyJet()
-    with open('a.json', 'w') as writer:
-        json.dump(ej._get_city_codes(), writer, indent=3)
-
 
 def testing():
     start_time = time.time()
 
     request = Request(
-        departure_city="BCN",
+        departure_city="AMS",
         # departure_date_first=datetime.date(2024, 3, 1),
         # departure_date_last=datetime.date(2024, 3, 6),
         # arrival_date_first=datetime.date(2024, 3, 1),
@@ -45,6 +40,28 @@ def testing():
     )
 
     # tv = Transavia()
+
+    wa = WizzAir()
+    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
+    # result_flight_wa = Flight.empty_flight()
+
+    print(time.time() - start_time)
+    print("Wizzair done scraping")
+    print()
+
+    ra = RyanAir()
+    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
+
+    print(time.time() - start_time)
+    print("Ryanair done scraping")
+    print()
+
+    # ej = EasyJet()
+    # result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
+    # print(time.time() - start_time)
+    # print("Easyjet done scraping")
+    # print()
+
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
     print(time.time() - start_time)
@@ -57,20 +74,7 @@ def testing():
     print("Volotea done scraping")
     print()
 
-    wa = WizzAir()
-    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
-    # result_flight_wa = Flight.empty_flight()
 
-    print(time.time()-start_time)
-    print("Wizzair done scraping")
-    print()
-
-    ra = RyanAir()
-    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
-
-    print(time.time() - start_time)
-    print("Ryanair done scraping")
-    print()
 
 
     ## layover flights ##

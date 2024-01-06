@@ -19,6 +19,12 @@ class BaseScraper:
     api_url: str
     headers: dict
 
+    MAX_WORKERS = 100
+    MAX_TEST_WORKERS = 1
+
+    LANGUAGE = "nl"
+    COUNTRY = 'nl'
+
     def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url

@@ -33,6 +33,8 @@ class WizzAir(BaseScraper):
 
     company_name = 'wizzair'
 
+    ticket_url = "https://wizzair.com/{language}-{country}#/booking/select-flight/{departure_iata}/{arrival_iata}/{date}/null/1/0/0/null"
+
     def __init__(self) -> None:
         """
         Initializes the Wizzair object and its super BaseScraper
@@ -143,37 +145,57 @@ class WizzAir(BaseScraper):
             outbound_flights = pd.json_normalize(fares_outbound, max_level=1)
             return_flights = pd.json_normalize(fares_return, max_level=1)
 
-            outbound_flights = outbound_flights.explode('departureDates')
-            return_flights = return_flights.explode('departureDates')
+            if not outbound_flights.empty:
+                try:
+                    outbound_flights = outbound_flights.explode('departureDates')
+                    outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(drop=True)
+                    outbound_flights = outbound_flights.drop(
+                        columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
+                                 'priceType'])
+                    outbound_flights = outbound_flights.rename(
+                        columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
+                                 'departureDates': 'departureDate'})
+                    outbound_flights['company'] = self.company_name
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = outbound_flights['departureDate'] + datetime.timedelta(hours=3)
+                    outbound_flights = super().add_country_codes(outbound_flights)
 
-            outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(drop=True)
-            return_flights = return_flights[return_flights['priceType'] != "checkPrice"].reset_index(drop=True)
+                    ticket_url = f"https://wizzair.com/{super().LANGUAGE}-{super().COUNTRY}/#/booking/select-flight/{departure_iata}/{arrival_iata}/"
+                    outbound_flights['ticketUrl'] = ticket_url + outbound_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(str) + "/null/1/0/0/null"
 
-            outbound_flights = outbound_flights.drop(
-                columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
-                         'priceType'])
-            return_flights = return_flights.drop(
-                columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
-                         'priceType'])
+                    # {date}/null/1/0/0/null"
 
-            outbound_flights = outbound_flights.rename(
-                columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
-                         'departureDates': 'departureDate'})
-            return_flights = return_flights.rename(
-                columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
-                         'departureDates': 'departureDate'})
 
-            outbound_flights['company'] = self.company_name
-            return_flights['company'] = self.company_name
+                except Exception as e:
+                    outbound_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
-            return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights.explode('departureDates')
+                    return_flights = return_flights[return_flights['priceType'] != "checkPrice"].reset_index(drop=True)
 
-            outbound_flights['arrivalDate'] = outbound_flights['departureDate'] + datetime.timedelta(hours=3)
-            return_flights['arrivalDate'] = return_flights['departureDate'] + datetime.timedelta(hours=3)
+                    return_flights = return_flights.drop(
+                        columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
+                                 'priceType'])
+                    return_flights = return_flights.rename(
+                        columns={'price.amount': 'price', 'price.currencyCode': 'currencyCode',
+                                 'departureDates': 'departureDate'})
 
-            outbound_flights = super().add_country_codes(outbound_flights)
-            return_flights = super().add_country_codes(return_flights)
+                    return_flights['company'] = self.company_name
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+
+                    return_flights['arrivalDate'] = return_flights['departureDate'] + datetime.timedelta(hours=3)
+                    return_flights = super().add_country_codes(return_flights)
+
+                    ticket_url = f"https://wizzair.com/{super().LANGUAGE}-{super().COUNTRY}/#/booking/select-flight/{arrival_iata}/{departure_iata}/"
+                    return_flights['ticketUrl'] = ticket_url + return_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(str) + "/null/1/0/0/null"
+
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    print(e)
+                    print()
 
             return Flight(outbound_flights, return_flights)
 
@@ -193,7 +215,7 @@ class WizzAir(BaseScraper):
 
         results = []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=super().MAX_WORKERS) as executor:
             threads = []
             for idx, connection_row in connections_df.iterrows():
                 connections = [connection['iata'] if 'ROM' not in connection['iata'] else 'FCO' for connection in
