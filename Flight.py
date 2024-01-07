@@ -80,14 +80,18 @@ class Flight:
     def get_possible_return_flights(self, idx, request: Request):
 
         iata_airport = Airport.get_airports_by_iata(self.outbound_flights['arrivalStation'].iloc[idx])
-        airports_radius_df = Airport.get_airports_by_radius(iata_airport['lon'].iloc[0], iata_airport['lat'].iloc[0], request.airport_radius)
+        airports_radius_df = Airport.get_airports_by_radius(
+            iata_airport['lon'].iloc[0],
+            iata_airport['lat'].iloc[0],
+            request.airport_radius
+        )
 
         self.return_flights['travel_days'] = (
                 self.return_flights['departureDay'] - self.outbound_flights['departureDay'].iloc[idx]).dt.days
+
         returnfl = self.return_flights[
             (self.return_flights['departureStation'].isin(airports_radius_df['iata'])) &
-            (self.return_flights['departureDate'] > pd.to_datetime(
-                self.outbound_flights['departureDate'].iloc[idx]))
+            (self.return_flights['departureDate'] > pd.to_datetime(self.outbound_flights['departureDate'].iloc[idx]))
             ]
         returnfl = returnfl[returnfl['travel_days'] >= 0].reset_index(
             drop=True)

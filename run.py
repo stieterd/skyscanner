@@ -41,10 +41,14 @@ def testing():
 
     # tv = Transavia()
 
+    ej = EasyJet()
+    result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
+    print(time.time() - start_time)
+    print("Easyjet done scraping")
+    print()
+
     wa = WizzAir()
     result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
-    # result_flight_wa = Flight.empty_flight()
-
     print(time.time() - start_time)
     print("Wizzair done scraping")
     print()
@@ -55,12 +59,6 @@ def testing():
     print(time.time() - start_time)
     print("Ryanair done scraping")
     print()
-
-    # ej = EasyJet()
-    # result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
-    # print(time.time() - start_time)
-    # print("Easyjet done scraping")
-    # print()
 
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
@@ -122,7 +120,7 @@ def testing():
 
     ### direct flights ###
 
-    flight = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt
+    flight = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt + result_flight_ej
     filtered_flight = flight.filter_flights(request)
     print(time.time() - start_time)
     print("flights filtered")

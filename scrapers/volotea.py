@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 
 from Airport import Airport
 from Exceptions import DateNotAvailableException
@@ -10,8 +11,8 @@ import pandas as pd
 import concurrent.futures
 import traceback
 
-class Volotea(BaseScraper):
 
+class Volotea(BaseScraper):
     base_url = "https://www.volotea.com/"
     api_url = "https://www.volotea.com/api/v1/"
 
@@ -81,6 +82,10 @@ class Volotea(BaseScraper):
         try:
             data = json.loads(r.content.decode('utf-8-sig'))
             fares_outbound = data[f'{departure_city_code}-{arrival_city_code}']
+
+        except JSONDecodeError:
+            fares_outbound = []
+
         except Exception as e:
             # print(r.text)
             print(e)
@@ -104,8 +109,10 @@ class Volotea(BaseScraper):
         try:
             # result = re.json()
             # TODO: Include FlightNumber and Terminal and AvailableSeats and OperatingCarrier in a future version
-            outbound_flights = pd.json_normalize(fares_outbound, record_path='Prices', meta=['Departure', 'Arrival'], max_level=3)
-            return_flights = pd.json_normalize(fares_return, record_path='Prices', meta=['Departure', 'Arrival'], max_level=3)
+            outbound_flights = pd.json_normalize(fares_outbound, record_path='Prices', meta=['Departure', 'Arrival'],
+                                                 max_level=3)
+            return_flights = pd.json_normalize(fares_return, record_path='Prices', meta=['Departure', 'Arrival'],
+                                               max_level=3)
 
             if not outbound_flights.empty:
                 try:
@@ -123,9 +130,14 @@ class Volotea(BaseScraper):
 
                     outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'],
                                                                        format='%Y%m%d%H%M', utc=True)
-                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], format='%Y%m%d%H%M',
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'],
+                                                                     format='%Y%m%d%H%M',
                                                                      utc=True)
                     outbound_flights = super().add_country_codes(outbound_flights)
+                    outbound_flights[
+                        'ticketUrl'] = f"https://www.volotea.com/en/flight-offers/{departure_city_code}/{arrival_city_code}/" + \
+                                       outbound_flights['departureDate'].dt.strftime('%B') + "/?megaplus=true"
+
                 except Exception as e:
                     outbound_flights = pd.DataFrame()
                     print(e)
@@ -150,6 +162,11 @@ class Volotea(BaseScraper):
                     return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], format='%Y%m%d%H%M',
                                                                    utc=True)
                     return_flights = super().add_country_codes(return_flights)
+                    return_flights[
+                        'ticketUrl'] = f"https://www.volotea.com/en/flight-offers/{arrival_city_code}/{departure_city_code}/" + \
+                                       return_flights['departureDate'].dt.strftime('%B') + "/?megaplus=true"
+
+
                 except Exception as e:
                     return_flights = pd.DataFrame()
                     print(e)
@@ -171,7 +188,8 @@ class Volotea(BaseScraper):
         # TODO: called method be dependent on if radius or country of departure is chosen
 
         departure_airports_df = request.get_requested_departure_airports_df()
-        connections_df = self.airports[self.airports['StationCode'].isin(departure_airports_df['iata'])].reset_index(drop=True)
+        connections_df = self.airports[self.airports['StationCode'].isin(departure_airports_df['iata'])].reset_index(
+            drop=True)
 
         results = []
 
@@ -193,4 +211,3 @@ class Volotea(BaseScraper):
                 results.append(result)
 
         return results
-

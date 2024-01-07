@@ -129,6 +129,8 @@ class Vueling(BaseScraper):
                     outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
 
                     outbound_flights = super().add_country_codes(outbound_flights)
+                    outbound_flights['ticketUrl'] = f"https://tickets.vueling.com/ScheduleSelectNew.aspx?flow=SB&step=select&culture={super().LANGUAGE}-{super().COUNTRY.upper()}&marketstructure=OneWay&adt=1&chd=0&infant=0&marketorigin1={departure_iata}&marketdestination1={arrival_iata}&marketday1=" + outbound_flights['departureDate'].dt.strftime('%d&marketmonth1=%Y-%m') + "&currency=EUR"
+
 
                 except Exception as e:
                     outbound_flights = pd.DataFrame()
@@ -155,6 +157,8 @@ class Vueling(BaseScraper):
                     return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
 
                     return_flights = super().add_country_codes(return_flights)
+                    return_flights['ticketUrl'] = f"https://tickets.vueling.com/ScheduleSelectNew.aspx?flow=SB&step=select&culture={super().LANGUAGE}-{super().COUNTRY.upper()}&marketstructure=OneWay&adt=1&chd=0&infant=0&marketorigin1={departure_iata}&marketdestination1={arrival_iata}&marketday1=" + return_flights['departureDate'].dt.strftime('%d&marketmonth1=%Y-%m') + "&currency=EUR"
+
                 except Exception as e:
                     return_flights = pd.DataFrame()
                     print(e)
