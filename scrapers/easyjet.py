@@ -57,7 +57,107 @@ class EasyJet(BaseScraper):
         else:
             return {}
 
-    def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
+    def get_possible_flight(self, arrival_iata:str, departure_iata: str, request: Request):
+        # url = f'https://gateway.prod.dohop.net/api/graphql?query= query getAvailability($partner: Partner!, $origins: [String]!, $destinations: [String]!, $currencyCode: CurrencyCode!) {{ availability( partner: $partner origins: $origins destinations: $destinations currencyCode: $currencyCode ) {{ homebound {{ ...AvailabilityNode }} outbound {{ ...AvailabilityNode }} }}}} fragment AvailabilityNode on AvailabilityNode {{ date type lowestFare }} &variables={{"partner":"easyjet","currencyCode":"EUR","origins":["{departure_iata}"],"destinations":["{arrival_iata}"]}}'
+        departure_url = f"https://www.easyjet.com/ejavailability/api/v76/fps/lowestdailyfares?ArrivalIata={arrival_iata}&Currency=EUR&DateFrom=2024-01-05&DateTo=2026-01-05&DepartureIata={departure_iata}&InboundFares=false"
+        arrival_url = f"https://www.easyjet.com/ejavailability/api/v76/fps/lowestdailyfares?ArrivalIata={departure_iata}&Currency=EUR&DateFrom=2024-01-05&DateTo=2026-01-05&DepartureIata={arrival_iata}&InboundFares=false"
+
+        headers = {
+                "Host": "www.easyjet.com",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-Transaction-Id": "BF8FC686-3CDD-E777-DACF-3C49095D1B49",
+                "Connection": "keep-alive",
+                "Referer": "https://www.easyjet.com/nl/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-origin"
+        }
+
+        departure_city_code = departure_iata
+        arrival_city_code = arrival_iata
+
+        if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
+            raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
+
+        r_outbound = requests.get(departure_url, headers=headers)
+        try:
+            fares_outbound = r_outbound.json()['Outbound']
+        except Exception as e:
+            print(r_outbound.text)
+            print(e)
+            print()
+            fares_outbound = {}
+
+        r_return = requests.get(arrival_url, headers=headers)
+        try:
+            fares_return = r_return.json()['Outbound']
+        except Exception as e:
+            print(r_return.text)
+            print(e)
+            print()
+            fares_return = {}
+
+        print(r_return)
+
+        try:
+            outbound_flights = pd.DataFrame(fares_outbound.items())
+            return_flights = pd.DataFrame(fares_return.items())
+
+            if not outbound_flights.empty:
+                try:
+                    outbound_flights = outbound_flights.rename(columns={0: 'departureDate', 1: 'price'})
+
+                    outbound_flights['arrivalDate'] = outbound_flights['departureDate']
+
+                    outbound_flights['departureStation'] = departure_iata
+                    outbound_flights['arrivalStation'] = arrival_iata
+
+                    outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'], utc=True)
+                    outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'], utc=True)
+
+                    outbound_flights['company'] = self.company_name
+                    outbound_flights['currencyCode'] = "EUR"
+
+                    outbound_flights = super().add_country_codes(outbound_flights)
+
+                except Exception as e:
+                    outbound_flights = pd.DataFrame()
+                    print(e)
+                    print()
+
+            if not return_flights.empty:
+                try:
+                    return_flights = return_flights.rename(columns={0: 'departureDate', 1: 'price'})
+
+                    return_flights['arrivalDate'] = return_flights['departureDate']
+
+                    return_flights['departureStation'] = arrival_iata
+                    return_flights['arrivalStation'] = departure_iata
+
+                    return_flights['departureDate'] = pd.to_datetime(return_flights['departureDate'], utc=True)
+                    return_flights['arrivalDate'] = pd.to_datetime(return_flights['arrivalDate'], utc=True)
+
+                    return_flights['company'] = self.company_name
+                    return_flights['currencyCode'] = "EUR"
+
+                    return_flights = super().add_country_codes(return_flights)
+
+                except Exception as e:
+                    return_flights = pd.DataFrame()
+                    print(e)
+                    print()
+
+            return Flight(outbound_flights, return_flights)
+
+        except Exception as e:
+            # print(re.text)
+            print(traceback.format_exc())
+            print(e)
+            return Flight.empty_flight()
+
+
+    def old_get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
         """
         Gets possible flights from the departure location through the connection that is given for all available dates
         ---
