@@ -106,6 +106,10 @@ class Flight:
 
         return returnfl
 
+    def get_possible_return_flights1(self, row, request: Request):
+        # Airport.arrival_station_radius_lambda(row, request.airport_radius)
+        pass
+
     @classmethod
     def empty_flight(cls):
         return cls(pd.DataFrame(), pd.DataFrame())

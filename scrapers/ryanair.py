@@ -192,7 +192,6 @@ class RyanAir(BaseScraper):
                         columns={'price.value': 'price', 'price.currencyCode': 'currencyCode'})
 
                     return_flights['company'] = self.company_name
-
                     return_flights = super().add_country_codes(return_flights)
 
                     ticket_url = f"https://www.ryanair.com/{super().LANGUAGE}/{super().COUNTRY}/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut="
