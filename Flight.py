@@ -72,6 +72,7 @@ class Flight:
             drop=True)
 
         # add day of week as columns
+        cheap_outbound_flights = cheap_outbound_flights[cheap_outbound_flights['departureDate'].dt.dayofweek.isin(request.available_departure_weekdays)]
         cheap_outbound_flights['weekday'] = cheap_outbound_flights['departureDate'].dt.day_name()
         cheap_return_flights['weekday'] = cheap_return_flights['departureDate'].dt.day_name()
 
@@ -93,6 +94,9 @@ class Flight:
             (self.return_flights['departureStation'].isin(airports_radius_df['iata'])) &
             (self.return_flights['departureDate'] > pd.to_datetime(self.outbound_flights['departureDate'].iloc[idx]))
             ]
+
+        returnfl = returnfl[returnfl['departureDate'].dt.dayofweek.isin(request.available_arrival_weekdays)]
+
         returnfl = returnfl[returnfl['travel_days'] >= 0].reset_index(
             drop=True)
 

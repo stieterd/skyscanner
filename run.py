@@ -25,16 +25,19 @@ def testing():
 
     request = Request(
         departure_city="EIN",
+        departure_date_first=datetime.date(2024, 6, 1),
+        departure_date_last=datetime.date(2024, 6, 30),
+        arrival_date_first=datetime.date(2024, 6, 1),
+        arrival_date_last=datetime.date(2024, 6, 30),
         # departure_date_first=datetime.date(2024, 3, 1),
-        # departure_date_last=datetime.date(2024, 3, 6),
+        # departure_date_last=datetime.date(2024, 3, 30),
         # arrival_date_first=datetime.date(2024, 3, 1),
-        # arrival_date_last=datetime.date(2024, 3, 6),
-        departure_date_first=datetime.date(2024, 3, 1),
-        departure_date_last=datetime.date(2024, 3, 30),
-        arrival_date_first=datetime.date(2024, 3, 1),
-        arrival_date_last=datetime.date(2024, 3, 30),
-        min_days_stay=3,
+        # arrival_date_last=datetime.date(2024, 3, 30),
+        min_days_stay=7,
+        # max_days_stay=5,
         airport_radius=100,
+        # available_departure_weekdays=(4, 5),
+        # available_arrival_weekdays=(6, 0, 1)
         # max_price_per_flight=25
     )
 
@@ -125,18 +128,40 @@ def testing():
     print("flights filtered")
     print()
 
-    filtered_flight.outbound_flights['n_returnflights'] = filtered_flight.outbound_flights.apply(lambda row: len(filtered_flight.get_possible_return_flights(row.name, request)), axis=1)
+    return_flights_data = filtered_flight.outbound_flights.apply(
+        lambda row: filtered_flight.get_possible_return_flights(row.name, request), axis=1)
+
+    # Add a new column 'return_flights_data' to the filtered_flight DataFrame
+    filtered_flight.outbound_flights['return_flights_data'] = return_flights_data
+
+    # Calculate the number of return flights and filter outbound flights
+    filtered_flight.outbound_flights['n_returnflights'] = return_flights_data.apply(lambda df: len(df))
     filtered_flight.outbound_flights = filtered_flight.outbound_flights[
         filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
 
+    # Calculate total cost using the precomputed return flights
+    filtered_flight.outbound_flights['total_cost'] = filtered_flight.outbound_flights.apply(
+        lambda row: row['price'] + row['return_flights_data']['price'].min(), axis=1
+    )
+
+    filtered_flight.outbound_flights = filtered_flight.outbound_flights.drop(columns=['return_flights_data'])
+
     print(time.time() - start_time)
-    print("n_return flights fixed")
+    print("n_return + total_cost flights finished")
     print()
 
-    filtered_flight.outbound_flights['total_cost'] = filtered_flight.outbound_flights.apply(lambda row: row['price'] + (filtered_flight.get_possible_return_flights(row.name, request))['price'].values[0], axis=1)
-    print(time.time() - start_time)
-    print("Finished everything")
-    print()
+    # filtered_flight.outbound_flights['n_returnflights'] = filtered_flight.outbound_flights.apply(lambda row: len(filtered_flight.get_possible_return_flights(row.name, request)), axis=1)
+    # filtered_flight.outbound_flights = filtered_flight.outbound_flights[
+    #     filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
+    #
+    # print(time.time() - start_time)
+    # print("n_return flights fixed")
+    # print()
+    #
+    # filtered_flight.outbound_flights['total_cost'] = filtered_flight.outbound_flights.apply(lambda row: row['price'] + (filtered_flight.get_possible_return_flights(row.name, request))['price'].values[0], axis=1)
+    # print(time.time() - start_time)
+    # print("Finished everything")
+    # print()
 
 
     while True:

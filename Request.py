@@ -57,12 +57,15 @@ class Request:
 
                  min_days_stay: int = None,
                  max_days_stay: int = None,
+                 available_departure_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+                 available_arrival_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
 
                  airport_radius: float = 0,
                  max_travel_time: datetime.time = None,  # TODO: add this one
                  earliest_travel_time: datetime.time = None,  # TODO: add this one
                  latest_travel_time: datetime.time = None,  # TODO: add this one
-                 max_price_per_flight: int = 99999999
+                 max_price_per_flight: int = 99999999,
+
                  ) -> None:
         """
         Initializes the class.
@@ -89,8 +92,10 @@ class Request:
 
         self.min_days_stay = min_days_stay
         self.max_days_stay = max_days_stay
-        self.airport_radius = airport_radius
+        self.available_departure_weekdays = available_departure_weekdays
+        self.available_arrival_weekdays = available_arrival_weekdays
 
+        self.airport_radius = airport_radius
         self.max_travel_time = max_travel_time
         self.earliest_travel_time = earliest_travel_time
         self.latest_travel_time = latest_travel_time
