@@ -55,6 +55,7 @@ class Airport:
         @param iata: this is the city code of a given city
         @return: all airports and their properties that are in this city
         """
+
         return Airport.all_airports_df[Airport.all_airports_df['iata'].str.contains(iata, case=False)].reset_index(drop=True)
 
     @staticmethod
