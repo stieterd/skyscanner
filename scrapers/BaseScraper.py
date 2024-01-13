@@ -1,5 +1,6 @@
 import json
 import datetime
+import random
 import time
 
 import pandas as pd
@@ -25,6 +26,9 @@ class BaseScraper:
     LANGUAGE = "nl"
     COUNTRY = 'nl'
 
+    with open("proxies.txt", 'r') as reader:
+        proxies = reader.read().splitlines()
+
     def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url
@@ -32,6 +36,10 @@ class BaseScraper:
 
     def get_headers(self):
         return self.headers
+
+    def get_proxy(self):
+        return {"http": random.choice(self.proxies)}
+
     def get_api_url(self, *api_calls: str, **queries: any) -> str:
         """
         Generates a proper api url string using the arguments and query arguments passed

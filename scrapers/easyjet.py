@@ -1,5 +1,6 @@
 import concurrent.futures
 import traceback
+import random
 
 from Airport import Airport
 from Exceptions import DateNotAvailableException
@@ -50,7 +51,10 @@ class EasyJet(BaseScraper):
         regionCode, cityCode, currencyCode, routes[], seasonalRoutes[], categories[], priority, timeZone
         """
         url = "https://www.easyjet.com/nl/"
-        r = requests.get(url, headers=self.headers)
+
+        proxy = super().get_proxy()
+
+        r = requests.get(url, proxies=proxy, headers=self.headers)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
         matches = re.search(pattern, r.text, re.DOTALL)
         if matches:
@@ -75,7 +79,10 @@ class EasyJet(BaseScraper):
         }
 
         url = f'https://gateway.prod.dohop.net/api/graphql?query= query getAvailability($partner: Partner!, $origins: [String]!, $destinations: [String]!, $currencyCode: CurrencyCode!) {{ availability( partner: $partner origins: $origins destinations: $destinations currencyCode: $currencyCode ) {{ homebound {{ ...AvailabilityNode }} outbound {{ ...AvailabilityNode }} }}}} fragment AvailabilityNode on AvailabilityNode {{ date type lowestFare}} &variables={{"partner":"easyjet","currencyCode":"EUR","origins":["{departure_iata}"],"destinations":["{arrival_iata}"]}}'
-        r = requests.get(url, headers=headers)
+
+        proxy = super().get_proxy()
+
+        r = requests.get(url, proxies=proxy, headers=headers)
         try:
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
@@ -109,22 +116,35 @@ class EasyJet(BaseScraper):
         fares_return = []
 
         for url in outbound_urls:
-            r = requests.get(url, headers=headers)
-            try:
-                fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
-            except Exception as e:
-                print(r.text)
-                print(e)
-                print()
+
+            def run(flip=False):
+                r = requests.get(url, proxies=proxy, headers=headers)
+                try:
+                    fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
+                except Exception as e:
+                    if flip:
+                        print(r.text)
+                        print(e)
+                        print()
+                    else:
+                        run(True)
+
+            run()
 
         for url in return_urls:
-            r = requests.get(url, headers=headers)
-            try:
-                fares_return.extend(r.json()['data']['searchOutbound']['offers'])
-            except Exception as e:
-                print(r.text)
-                print(e)
-                print()
+            def run(flip=False):
+                r = requests.get(url, proxies=proxy, headers=headers)
+                try:
+                    fares_return.extend(r.json()['data']['searchOutbound']['offers'])
+                except Exception as e:
+                    if flip:
+                        print(r.text)
+                        print(e)
+                        print()
+                    else:
+                        run(True)
+
+            run()
 
         outbound_flights = pd.json_normalize(fares_outbound, ['itinerary', ['outbound']], ['outboundPricePerPerson', 'transferURL'])
         return_flights = pd.json_normalize(fares_return, ['itinerary', ['outbound']], ['outboundPricePerPerson', 'transferURL'])

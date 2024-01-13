@@ -15,11 +15,13 @@ class Transavia(BaseScraper):
 
     # https://www.transavia.com/en-EU/api/SearchPanelDestinations/?departureAirport=EIN&selfConnect=true
     base_url = "https://www.transavia.com/en-EU"
-    api_url = "https://www.transavia.com/en-EU/api"
+    api_url = "https://api.transavia.com/v1"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
     }
+
+    api_keys = ["fe56c30d3a1146a89fb7dfcd0d383bd5"]
 
     company_name = 'transavia'
 
@@ -31,7 +33,8 @@ class Transavia(BaseScraper):
 
     def _get_city_codes(self):
         url = super().get_api_url("airports", selfConnect="true")
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
         return r.json()
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
@@ -79,7 +82,8 @@ class Transavia(BaseScraper):
         fares_return = []
         for pl in payloads:
             url = super().get_api_url('search', 'timetable')
-            r = requests.post(url, headers=self.headers, json=pl)
+            proxy = super().get_proxy()
+            r = requests.post(url, proxies=proxy, headers=self.headers, json=pl)
             try:
                 fares_outbound.extend(r.json()['outboundFlights'])
                 fares_return.extend(r.json()['returnFlights'])

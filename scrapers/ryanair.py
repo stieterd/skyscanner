@@ -13,7 +13,9 @@ import concurrent.futures
 from dateutil.relativedelta import relativedelta
 import traceback
 
+
 class RyanAir(BaseScraper):
+
     base_url = "https://www.ryanair.com"
     api_url = "https://www.ryanair.com/api"
 
@@ -32,9 +34,8 @@ class RyanAir(BaseScraper):
         Initializes the RyanAir object and its super BaseScraper
         """
         city_codes = self._get_city_codes()
-        country_codes = self._get_country_codes()
-
-        countries_df = pd.json_normalize(country_codes, max_level=1)
+        # country_codes = self._get_country_codes()
+        # countries_df = pd.json_normalize(country_codes, max_level=1)
 
         self.airports = pd.json_normalize(city_codes, max_level=1)
 
@@ -47,8 +48,10 @@ class RyanAir(BaseScraper):
         iataCode, name, seoName, aliases[], coordinates[latitude], coordinates[longitude], base, countryCode,
         regionCode, cityCode, currencyCode, routes[], seasonalRoutes[], categories[], priority, timeZone
         """
+        proxy = super().get_proxy()
         url = super().get_api_url('views', 'locate', '3', 'airports', 'en', 'active')
-        re = requests.get(url, headers=self.headers)
+
+        re = requests.get(url, proxies=proxy, headers=self.headers, verify=False)
         return re.json()
 
     def _get_country_codes(self):
@@ -59,9 +62,9 @@ class RyanAir(BaseScraper):
         country[code], country[iso3code], country[name], country[currency], country[defaultAirportCode], schengen,
         coordinates[latitude], coordinates[longitude], timeZone
         """
-
+        proxy = super().get_proxy()
         url = super().get_api_url('views', 'locate', '5', 'airports', 'en', 'active')
-        re = requests.get(url, headers=self.headers)
+        re = requests.get(url, proxies=proxy, headers=self.headers)
         return re.json()
 
     def last_day_of_month(self, any_day: datetime.date):
@@ -79,6 +82,8 @@ class RyanAir(BaseScraper):
         cur_arrival_date = self.last_day_of_month(request.departure_date_first)
 
         urls = []
+
+        proxy = super().get_proxy()
 
         while cur_departure_date < request.arrival_date_last:
             url = super().get_api_url("farfnd",
@@ -101,7 +106,7 @@ class RyanAir(BaseScraper):
         fares_return = []
 
         for url in urls:
-            re = requests.get(url, headers=self.headers)
+            re = requests.get(url, proxies=proxy, headers=self.headers, verify=False)
             try:
                 fares_outbound.extend(re.json()['outbound']['fares'])
             except Exception as e:

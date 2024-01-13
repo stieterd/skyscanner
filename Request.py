@@ -55,8 +55,8 @@ class Request:
                  arrival_date_first: datetime.date = None,
                  arrival_date_last: datetime.date = None,
 
-                 min_days_stay: int = None,
-                 max_days_stay: int = None,
+                 min_days_stay: int = 0,
+                 max_days_stay: int = 99999999,
                  available_departure_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
                  available_arrival_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
 
@@ -129,6 +129,9 @@ class Request:
         if self.departure_country != None:
             departure_airports_df = Airport.get_airports_by_country(self.departure_country)
             return departure_airports_df
+
+        else:
+            return Airport.all_airports_df
 
     def get_requested_arrival_airports_df(self) -> pandas.DataFrame:
         """

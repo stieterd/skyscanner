@@ -42,7 +42,8 @@ class Vueling(BaseScraper):
         """
         # https://apiwww.vueling.com/api/Markets/GetAllMarketsSearcher
         url = super().get_api_url('Markets', 'GetAllMarketsSearcher')
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
         return r.json()
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
@@ -83,8 +84,10 @@ class Vueling(BaseScraper):
             monthsrange=15
         )
 
-        r_departure = requests.get(departure_url, headers=self.headers)
-        r_arrival = requests.get(arrival_url, headers=self.headers)
+        proxy = super().get_proxy()
+
+        r_departure = requests.get(departure_url, proxies=proxy, headers=self.headers)
+        r_arrival = requests.get(arrival_url, proxies=proxy, headers=self.headers)
 
         try:
             fares_outbound = r_departure.json()

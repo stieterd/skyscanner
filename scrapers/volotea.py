@@ -58,7 +58,8 @@ class Volotea(BaseScraper):
 
     def _get_city_codes(self):
         url = "https://json.volotea.com/dist/stations/stations.json?v=1"
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
         return r.json()
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
@@ -76,8 +77,8 @@ class Volotea(BaseScraper):
         fares_return = []
 
         url = f'https://json.volotea.com/dist/schedule/{departure_city_code}-{arrival_city_code}_schedule.json'
-
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
 
         try:
             data = json.loads(r.content.decode('utf-8-sig'))

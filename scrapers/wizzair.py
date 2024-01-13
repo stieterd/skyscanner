@@ -52,7 +52,8 @@ class WizzAir(BaseScraper):
         super().__init__(self.base_url, self.headers, api_url=self.api_url)
 
     def detect_api_version(self) -> str:
-        r = requests.get("https://wizzair.com/buildnumber", headers={
+        proxy = super().get_proxy()
+        r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
         pattern = r'\bhttps://be\.wizzair\.com/(\d+\.\d+\.\d+)\b'
         match = re.search(pattern, r.text)
@@ -71,7 +72,8 @@ class WizzAir(BaseScraper):
         index, code, name, isEu, isSchengen, phonePrefix
         """
         url = super().get_api_url('asset', 'country', languageCode='en-gb')
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
 
         return r.json()['countries']
 
@@ -83,7 +85,8 @@ class WizzAir(BaseScraper):
         connections, aliases, isExcludedFromGeoLocation, rank, categories, isFakeStation
         """
         url = super().get_api_url('asset', 'map', languageCode='en-gb')
-        r = requests.get(url, headers=self.headers)
+        proxy = super().get_proxy()
+        r = requests.get(url, proxies=proxy, headers=self.headers)
         return r.json()['cities']
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
@@ -98,7 +101,12 @@ class WizzAir(BaseScraper):
             raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
 
         cur_departure_date1, cur_departure_date2 = super().find_first_and_last_day(request.departure_date_first)
+        if cur_departure_date1 <= datetime.datetime.now().date():
+            cur_departure_date1 = datetime.datetime.now().date()
+
         cur_arrival_date1, cur_arrival_date2 = super().find_first_and_last_day(request.arrival_date_first)
+        if cur_arrival_date1 <= datetime.datetime.now().date():
+            cur_arrival_date1 = datetime.datetime.now().date()
         payloads = []
 
         while cur_departure_date1 < request.departure_date_last or cur_arrival_date1 < request.arrival_date_last:
@@ -131,7 +139,8 @@ class WizzAir(BaseScraper):
         fares_return = []
         for pl in payloads:
             url = super().get_api_url('search', 'timetable')
-            r = requests.post(url, headers=self.headers, json=pl)
+            proxy = super().get_proxy()
+            r = requests.post(url, proxies=proxy, headers=self.headers, json=pl)
             try:
                 fares_outbound.extend(r.json()['outboundFlights'])
                 fares_return.extend(r.json()['returnFlights'])
