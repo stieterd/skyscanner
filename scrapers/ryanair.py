@@ -87,7 +87,7 @@ class RyanAir(BaseScraper):
 
         while cur_departure_date < request.arrival_date_last:
             url = super().get_api_url("farfnd",
-                                      "3",
+                                      "v4",
                                       "roundTripFares",
                                       departure_iata,
                                       arrival_iata,
@@ -106,7 +106,7 @@ class RyanAir(BaseScraper):
         fares_return = []
 
         for url in urls:
-            re = requests.get(url, proxies=proxy, headers=self.headers, verify=False)
+            re = requests.get(url, proxies=proxy, headers=self.headers)
             try:
                 fares_outbound.extend(re.json()['outbound']['fares'])
             except Exception as e:
