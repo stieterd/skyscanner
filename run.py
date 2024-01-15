@@ -19,7 +19,7 @@ DIRECTORY = "output_data"
 
 def get_flights():
     request = Request(
-        departure_city="EIN",
+        # departure_city="EIN",
         departure_date_first=datetime.datetime.now().date(),
         departure_date_last=datetime.datetime.now().date() + relativedelta(months=+9),
         arrival_date_first=datetime.datetime.now().date(),
@@ -75,12 +75,12 @@ if __name__ == "__main__":
     begin_time = 0
     while True:
         if time.time() - begin_time > 60 * 60:
-
+            begin_time = time.time()
             flights: Flight = get_flights()
 
             cur_time_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")
 
             flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv")
             flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv")
-            begin_time = time.time()
+
 

@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 
 from Airport import Airport
@@ -32,6 +34,15 @@ class Flight:
 
         self.return_flights = inbound_flights.reset_index(drop=True)
         self.outbound_flights = outbound_flights.reset_index(drop=True)
+
+        self.return_flights['scrapeDate'] = datetime.datetime.now()
+        self.outbound_flights['scrapeDate'] = datetime.datetime.now()
+
+        self.return_flights['scrapeDate'] = pd.to_datetime(self.return_flights['scrapeDate'])
+        self.outbound_flights['scrapeDate'] = pd.to_datetime(self.outbound_flights['scrapeDate'])
+
+        self.return_flights['hash'] = self.return_flights.apply(lambda x: hash(tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+        self.outbound_flights['hash'] = self.outbound_flights.apply(lambda x: hash(tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
 
     def __add__(self, other: 'Flight'):
         if isinstance(other, Flight):
