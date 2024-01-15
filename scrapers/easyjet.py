@@ -50,11 +50,24 @@ class EasyJet(BaseScraper):
         iataCode, name, seoName, aliases[], coordinates[latitude], coordinates[longitude], base, countryCode,
         regionCode, cityCode, currencyCode, routes[], seasonalRoutes[], categories[], priority, timeZone
         """
-        url = "https://www.easyjet.com/nl/"
+        url = "https://www.easyjet.com/en/"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1"
+        }
 
         proxy = super().get_proxy()
         print(proxy)
-        r = requests.get(url, proxies=proxy, headers=self.headers, timeout=5)
+        r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
         print(r.status_code)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
         matches = re.search(pattern, r.text, re.DOTALL)
