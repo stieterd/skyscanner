@@ -30,7 +30,7 @@ def get_flights():
 
     start_time = time.time()
     # companies = [RyanAir(), EasyJet(), WizzAir(), Vueling(), Volotea()]
-
+    print("start")
     ra = RyanAir()
     result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
 
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     begin_time = 0
     while True:
         if time.time() - begin_time > 60 * 60:
+
             flights: Flight = get_flights()
 
             cur_time_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")

@@ -97,7 +97,7 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
 
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, proxies=proxy, headers=headers)
         try:
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
@@ -133,7 +133,8 @@ class EasyJet(BaseScraper):
         for url in outbound_urls:
             print("Easyjet url")
             def run(flip=False):
-                r = requests.get(url, headers=headers)
+                proxy = super().get_proxy()
+                r = requests.get(url, proxies=proxy, headers=headers)
                 try:
                     fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
@@ -149,7 +150,8 @@ class EasyJet(BaseScraper):
         for url in return_urls:
             print("Easyjet url")
             def run(flip=False):
-                r = requests.get(url, headers=headers)
+                proxy = super().get_proxy()
+                r = requests.get(url, proxies=proxy, headers=headers)
                 try:
                     fares_return.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:

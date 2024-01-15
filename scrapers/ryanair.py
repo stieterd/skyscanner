@@ -51,7 +51,7 @@ class RyanAir(BaseScraper):
         proxy = super().get_proxy()
         url = super().get_api_url('views', 'locate', '3', 'airports', 'en', 'active')
 
-        re = requests.get(url, headers=self.headers)
+        re = requests.get(url, proxies=proxy, headers=self.headers)
         return re.json()
 
     def _get_country_codes(self):
@@ -106,7 +106,7 @@ class RyanAir(BaseScraper):
         fares_return = []
 
         for url in urls:
-            re = requests.get(url, headers=self.headers)
+            re = requests.get(url, proxies=proxy, headers=self.headers)
             try:
                 fares_outbound.extend(re.json()['outbound']['fares'])
             except Exception as e:
