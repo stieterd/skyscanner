@@ -54,7 +54,7 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
         print(proxy)
-        r = requests.get(url, proxies=proxy, headers=self.headers)
+        r = requests.get(url, proxies=proxy, headers=self.headers, timeout=5)
         print(r.status_code)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
         matches = re.search(pattern, r.text, re.DOTALL)
@@ -85,7 +85,7 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
 
-        r = requests.get(url, proxies=proxy, headers=headers)
+        r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
         try:
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
@@ -121,7 +121,7 @@ class EasyJet(BaseScraper):
         for url in outbound_urls:
 
             def run(flip=False):
-                r = requests.get(url, proxies=proxy, headers=headers)
+                r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
                 try:
                     fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
@@ -136,7 +136,7 @@ class EasyJet(BaseScraper):
 
         for url in return_urls:
             def run(flip=False):
-                r = requests.get(url, proxies=proxy, headers=headers)
+                r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
                 try:
                     fares_return.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
