@@ -14,7 +14,6 @@ from Flight import Flight
 import asyncio
 
 from pandas.io import sql
-import MySQLdb
 
 from concurrent.futures import ThreadPoolExecutor
 import concurrent
