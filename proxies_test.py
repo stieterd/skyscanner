@@ -1,6 +1,6 @@
 import requests
 
-url_to_check = "https://be.wizzair.com/20.0.0/API/asset/bundles?isPostBooking=false"  # Replace with the actual URL you want to check
+url_to_check = 'https://www.ryanair.com/api/views/locate/3/airports/en/active'  # Replace with the actual URL you want to check
 
 with open("proxies.txt", 'r') as reader:
     t = reader.read().splitlines()
