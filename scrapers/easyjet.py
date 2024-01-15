@@ -55,12 +55,15 @@ class EasyJet(BaseScraper):
         proxy = super().get_proxy()
 
         r = requests.get(url, proxies=proxy, headers=self.headers)
+        print(r.status_code)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
         matches = re.search(pattern, r.text, re.DOTALL)
         if matches:
+            print("matched")
             extracted_data = matches.group(1)
             return json.loads(extracted_data)['Airports']
         else:
+            print("Bad")
             return {}
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request):

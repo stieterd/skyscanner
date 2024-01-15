@@ -51,7 +51,7 @@ class RyanAir(BaseScraper):
         proxy = super().get_proxy()
         url = super().get_api_url('views', 'locate', '3', 'airports', 'en', 'active')
 
-        re = requests.get(url, proxies=proxy, headers=self.headers, verify=False)
+        re = requests.get(url, proxies=proxy, headers=self.headers)
         return re.json()
 
     def _get_country_codes(self):
