@@ -150,7 +150,6 @@ class EasyJet(BaseScraper):
             run()
 
         for url in return_urls:
-            print("Easyjet url")
             proxy = super().get_proxy()
             def run(flip=False):
 
