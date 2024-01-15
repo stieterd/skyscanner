@@ -86,7 +86,6 @@ class EasyJet(BaseScraper):
         if request.departure_date_first is None or request.departure_date_last is None or request.arrival_date_first is None or request.arrival_date_last is None:
             raise DateNotAvailableException("No date was passed as argument for departure and/or arrival")
 
-        print(f'EASYJET {arrival_iata} {departure_iata}')
         headers = {
             "Host": "gateway.prod.dohop.net",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
@@ -99,8 +98,9 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
 
-        r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
+
         try:
+            r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
             availability_return = pd.DataFrame(r.json()['data']['availability']['homebound'])
@@ -133,7 +133,6 @@ class EasyJet(BaseScraper):
         fares_return = []
 
         for url in outbound_urls:
-            print("Easyjet url")
             proxy = super().get_proxy()
             def run(flip=False):
 

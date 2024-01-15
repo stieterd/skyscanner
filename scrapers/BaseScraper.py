@@ -39,7 +39,11 @@ class BaseScraper:
 
     def get_proxy(self):
         proxy = random.choice(self.proxies)
-        return {"http": proxy, "https": proxy}
+        # return {"http": proxy, "https": proxy}
+        return {
+                  'http': 'http://s2t8v:jfr6jj57@89.19.33.120:5432',
+                  'https': 'http://s2t8v:jfr6jj57@89.19.33.120:5432'
+                }
 
     def get_api_url(self, *api_calls: str, **queries: any) -> str:
         """
