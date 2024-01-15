@@ -86,19 +86,14 @@ class EasyJet(BaseScraper):
 
         headers = {
             "Host": "gateway.prod.dohop.net",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-            "Connection": "keep-alive",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site",
-            "TE": "trailers"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
         }
 
         url = f'https://gateway.prod.dohop.net/api/graphql?query= query getAvailability($partner: Partner!, $origins: [String]!, $destinations: [String]!, $currencyCode: CurrencyCode!) {{ availability( partner: $partner origins: $origins destinations: $destinations currencyCode: $currencyCode ) {{ homebound {{ ...AvailabilityNode }} outbound {{ ...AvailabilityNode }} }}}} fragment AvailabilityNode on AvailabilityNode {{ date type lowestFare}} &variables={{"partner":"easyjet","currencyCode":"EUR","origins":["{departure_iata}"],"destinations":["{arrival_iata}"]}}'
 
         proxy = super().get_proxy()
 
-        r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
+        r = requests.get(url, proxies=proxy, headers=headers)
         try:
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
@@ -134,7 +129,7 @@ class EasyJet(BaseScraper):
         for url in outbound_urls:
 
             def run(flip=False):
-                r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
+                r = requests.get(url, proxies=proxy, headers=headers)
                 try:
                     fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
@@ -149,7 +144,7 @@ class EasyJet(BaseScraper):
 
         for url in return_urls:
             def run(flip=False):
-                r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
+                r = requests.get(url, proxies=proxy, headers=headers)
                 try:
                     fares_return.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
