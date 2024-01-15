@@ -53,7 +53,7 @@ class EasyJet(BaseScraper):
         url = "https://www.easyjet.com/nl/"
 
         proxy = super().get_proxy()
-
+        print(proxy)
         r = requests.get(url, proxies=proxy, headers=self.headers)
         print(r.status_code)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
