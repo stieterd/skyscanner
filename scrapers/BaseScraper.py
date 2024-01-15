@@ -20,7 +20,7 @@ class BaseScraper:
     api_url: str
     headers: dict
 
-    MAX_WORKERS = 100
+    MAX_WORKERS = 10
     MAX_TEST_WORKERS = 1
 
     LANGUAGE = "nl"

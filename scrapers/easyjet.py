@@ -34,6 +34,8 @@ class EasyJet(BaseScraper):
         "Sec-Fetch-User": "?1"
     }
 
+    timeout = 5
+
     def __init__(self):
 
         # https://www.easyjet.com/ejavailability/api/v76/fps/lowestdailyfares?ArrivalIata=LPL&Currency=EUR&DateFrom=2023-12-30&DateTo=2025-12-30&DepartureIata=AMS&InboundFares=true
@@ -97,7 +99,7 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
 
-        r = requests.get(url, proxies=proxy, headers=headers)
+        r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
         try:
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
@@ -132,14 +134,15 @@ class EasyJet(BaseScraper):
 
         for url in outbound_urls:
             print("Easyjet url")
+            proxy = super().get_proxy()
             def run(flip=False):
-                proxy = super().get_proxy()
-                r = requests.get(url, proxies=proxy, headers=headers)
+
                 try:
+                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
                     fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
                     if flip:
-                        print(r.text)
+                        # print(r.text)
                         print(e)
                         print()
                     else:
@@ -149,14 +152,15 @@ class EasyJet(BaseScraper):
 
         for url in return_urls:
             print("Easyjet url")
+            proxy = super().get_proxy()
             def run(flip=False):
-                proxy = super().get_proxy()
-                r = requests.get(url, proxies=proxy, headers=headers)
+
                 try:
+                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
                     fares_return.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
                     if flip:
-                        print(r.text)
+                        # print(r.text)
                         print(e)
                         print()
                     else:

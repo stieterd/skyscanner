@@ -33,7 +33,14 @@ class RyanAir(BaseScraper):
         """
         Initializes the RyanAir object and its super BaseScraper
         """
-        city_codes = self._get_city_codes()
+        x = 0
+        while x < 10:
+            x += 1
+            try:
+                city_codes = self._get_city_codes()
+                break
+            except Exception as e:
+                pass
         # country_codes = self._get_country_codes()
         # countries_df = pd.json_normalize(country_codes, max_level=1)
 
