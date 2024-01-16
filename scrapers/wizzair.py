@@ -45,11 +45,10 @@ class WizzAir(BaseScraper):
         """
 
         self.api_url = f"https://be.wizzair.com/{self.detect_api_version()}/Api"
+        super().__init__(self.base_url, self.headers, api_url=self.api_url)
 
         cities = self._get_city_codes()
         self.airports = pd.json_normalize(cities, record_path=None)
-
-        super().__init__(self.base_url, self.headers, api_url=self.api_url)
 
     def detect_api_version(self) -> str:
         proxy = super().get_proxy()

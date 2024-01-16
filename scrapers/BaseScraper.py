@@ -27,15 +27,14 @@ class BaseScraper:
     LANGUAGE = "nl"
     COUNTRY = 'nl'
 
-    proxies = itertools.cycle(["http://31.204.3.112:5432:rpxod:ki2ag7xw", "http://31.204.3.252:5432:rpxod:ki2ag7xw",
-               "http://213.209.140.106:5432:rpxod:ki2ag7xw", "http://s2t8v:jfr6jj57@89.19.33.120:5432"])
+    proxies = itertools.cycle(["http://rpxod:ki2ag7xw@31.204.3.112:5432", "http://rpxod:ki2ag7xw@31.204.3.252:5432",
+               "http://rpxod:ki2ag7xw@213.209.140.106:5432", "http://s2t8v:jfr6jj57@89.19.33.120:5432"])
+    cur_proxy = next(proxies)
 
     def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url
         self.api_url = api_url
-
-        self.cur_proxy = next(self.proxies)
 
     def get_headers(self):
         return self.headers
