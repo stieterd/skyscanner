@@ -107,7 +107,7 @@ class EasyJet(BaseScraper):
             availability_return['date'] = pd.to_datetime(availability_return['date'])
         except Exception as e:
             print(e)
-            print(r.text)
+            # print(r.text)
             return Flight.empty_flight()
 
         availability_outbound = availability_outbound[availability_outbound['type'].str.contains("DIRECT", case=False)]
