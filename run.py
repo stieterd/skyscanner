@@ -33,6 +33,7 @@ def get_flights():
     print("start")
     ra = RyanAir()
     result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
+    ra.next_proxy()
 
     print(time.time() - start_time)
     print("Ryanair done scraping")
@@ -40,6 +41,7 @@ def get_flights():
 
     ej = EasyJet()
     result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
+    ej.next_proxy()
     # result_flight_ej = Flight.empty_flight()
     print(time.time() - start_time)
     print("Easyjet done scraping")
@@ -47,18 +49,21 @@ def get_flights():
 
     wa = WizzAir()
     result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
+    wa.next_proxy()
     print(time.time() - start_time)
     print("Wizzair done scraping")
     print()
 
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
+    vu.next_proxy()
     print(time.time() - start_time)
     print("Vueling done scraping")
     print()
 
     vt = Volotea()
     result_flight_vt = sum(vt.get_possible_flights(request), start=Flight.empty_flight())
+    vt.next_proxy()
     print(time.time() - start_time)
     print("Volotea done scraping")
     print()

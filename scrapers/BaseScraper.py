@@ -10,6 +10,7 @@ from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotA
     DateNotAvailableException
 
 import Request
+import itertools
 
 
 class BaseScraper:
@@ -20,29 +21,33 @@ class BaseScraper:
     api_url: str
     headers: dict
 
-    MAX_WORKERS = 50
+    MAX_WORKERS = 80
     MAX_TEST_WORKERS = 1
 
     LANGUAGE = "nl"
     COUNTRY = 'nl'
 
-    with open("proxies.txt", 'r') as reader:
-        proxies = reader.read().splitlines()
+    proxies = itertools.cycle(["http://31.204.3.112:5432:rpxod:ki2ag7xw", "http://31.204.3.252:5432:rpxod:ki2ag7xw",
+               "http://213.209.140.106:5432:rpxod:ki2ag7xw", "http://s2t8v:jfr6jj57@89.19.33.120:5432"])
 
     def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url
         self.api_url = api_url
 
+        self.cur_proxy = next(self.proxies)
+
     def get_headers(self):
         return self.headers
 
+    def next_proxy(self):
+        self.cur_proxy = next(self.proxies)
+
     def get_proxy(self):
-        proxy = random.choice(self.proxies)
         # return {"http": proxy, "https": proxy}
         return {
-                  'http': 'http://s2t8v:jfr6jj57@89.19.33.120:5432',
-                  'https': 'http://s2t8v:jfr6jj57@89.19.33.120:5432'
+                  'http': self.cur_proxy,
+                  'https': self.cur_proxy
                 }
 
     def get_api_url(self, *api_calls: str, **queries: any) -> str:
