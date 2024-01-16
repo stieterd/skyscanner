@@ -203,9 +203,9 @@ class RyanAir(BaseScraper):
                     ticket_url = f"https://www.ryanair.com/{super().LANGUAGE}/{super().COUNTRY}/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut="
                     return_flights['ticketUrl'] = ticket_url + return_flights['departureDate'].dt.strftime(
                         '%Y-%m-%d').astype(
-                        str) + f"&dateIn=&isConnectedFlight=false&discount=0&promoCode=&isReturn=false&originIata={departure_iata}&destinationIata={arrival_iata}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate=" + \
+                        str) + f"&dateIn=&isConnectedFlight=false&discount=0&promoCode=&isReturn=false&originIata={arrival_iata}&destinationIata={departure_iata}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate=" + \
                                                   return_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(
-                                                      str) + f"&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={departure_iata}&tpDestinationIata={arrival_iata}"
+                                                      str) + f"&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={arrival_iata}&tpDestinationIata={departure_iata}"
 
                 except EmptyDataframeException:
                     return_flights = pd.DataFrame()

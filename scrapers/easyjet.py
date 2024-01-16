@@ -110,10 +110,10 @@ class EasyJet(BaseScraper):
             # print(r.text)
             return Flight.empty_flight()
 
-        availability_outbound = availability_outbound[availability_outbound['type'].str.contains("DIRECT", case=False)]
+        # availability_outbound = availability_outbound[availability_outbound['type'].str.contains("DIRECT", case=False)]
         availability_outbound = availability_outbound[(request.departure_date_first <= availability_outbound['date'].dt.date) & (availability_outbound['date'].dt.date <= request.departure_date_last)]
 
-        availability_return = availability_return[availability_return['type'].str.contains("DIRECT", case=False)]
+        # availability_return = availability_return[availability_return['type'].str.contains("DIRECT", case=False)]
         availability_return = availability_return[(request.departure_date_first <= availability_return['date'].dt.date) & (availability_return['date'].dt.date <= request.departure_date_last)]
 
         outbound_urls = []
