@@ -45,6 +45,11 @@ def testing():
 
     # tv = Transavia()
 
+    wa = WizzAir()
+    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
+    print(time.time() - start_time)
+    print("Wizzair done scraping")
+    print()
 
     ra = RyanAir()
     result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
@@ -60,11 +65,6 @@ def testing():
     print("Easyjet done scraping")
     print()
 
-    wa = WizzAir()
-    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
-    print(time.time() - start_time)
-    print("Wizzair done scraping")
-    print()
 
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
