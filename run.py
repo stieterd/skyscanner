@@ -10,6 +10,7 @@ from scrapers.transavia import Transavia
 from Request import Request
 import pandas as pd
 from Flight import Flight
+from Proxy import Proxy
 
 import time
 import datetime
@@ -31,39 +32,39 @@ def get_flights():
     start_time = time.time()
     # companies = [RyanAir(), EasyJet(), WizzAir(), Vueling(), Volotea()]
     print("start")
-    ra = RyanAir()
-    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
-    ra.next_proxy()
-
-    print(time.time() - start_time)
-    print("Ryanair done scraping")
-    print()
 
     ej = EasyJet()
     result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
-    ej.next_proxy()
+
     # result_flight_ej = Flight.empty_flight()
     print(time.time() - start_time)
     print("Easyjet done scraping")
     print()
 
+    ra = RyanAir()
+    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
+
+    print(time.time() - start_time)
+    print("Ryanair done scraping")
+    print()
+
     wa = WizzAir()
     result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
-    wa.next_proxy()
+
     print(time.time() - start_time)
     print("Wizzair done scraping")
     print()
 
     vu = Vueling()
     result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
-    vu.next_proxy()
+
     print(time.time() - start_time)
     print("Vueling done scraping")
     print()
 
     vt = Volotea()
     result_flight_vt = sum(vt.get_possible_flights(request), start=Flight.empty_flight())
-    vt.next_proxy()
+
     print(time.time() - start_time)
     print("Volotea done scraping")
     print()
@@ -76,7 +77,7 @@ def get_flights():
 
 
 if __name__ == "__main__":
-
+    Proxy.next_proxy()
     begin_time = 0
     while True:
         if time.time() - begin_time > 60 * 60:
@@ -88,4 +89,4 @@ if __name__ == "__main__":
             flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv")
             flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv")
 
-
+            Proxy.next_proxy()

@@ -8,7 +8,7 @@ import pandas as pd
 from Airport import Airport
 from Exceptions import CityNotFoundException, CountryNotFoundException, TimeNotAvailableException, \
     DateNotAvailableException
-
+from Proxy import Proxy
 import Request
 import itertools
 
@@ -27,10 +27,6 @@ class BaseScraper:
     LANGUAGE = "nl"
     COUNTRY = 'nl'
 
-    proxies = itertools.cycle(["http://rpxod:ki2ag7xw@31.204.3.112:5432", "http://rpxod:ki2ag7xw@31.204.3.252:5432",
-               "http://rpxod:ki2ag7xw@213.209.140.106:5432", "http://s2t8v:jfr6jj57@89.19.33.120:5432"])
-    cur_proxy = next(proxies)
-
     def __init__(self, base_url, headers, api_url=None) -> None:
 
         self.base_url = base_url
@@ -40,13 +36,13 @@ class BaseScraper:
         return self.headers
 
     def next_proxy(self):
-        self.cur_proxy = next(self.proxies)
+        Proxy.next_proxy()
 
     def get_proxy(self):
         # return {"http": proxy, "https": proxy}
         return {
-                  'http': self.cur_proxy,
-                  'https': self.cur_proxy
+                  'http': Proxy.this_proxy,
+                  'https': Proxy.this_proxy
                 }
 
     def get_api_url(self, *api_calls: str, **queries: any) -> str:
