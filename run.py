@@ -19,12 +19,12 @@ DIRECTORY = "output_data"
 
 def get_flights():
     request = Request(
-        # departure_city="EIN",
+        departure_city="EIN",
         departure_date_first=datetime.datetime.now().date(),
         departure_date_last=datetime.datetime.now().date() + relativedelta(months=+9),
         arrival_date_first=datetime.datetime.now().date(),
         arrival_date_last=datetime.datetime.now().date() + relativedelta(months=+9),
-        airport_radius=100
+        airport_radius=200
         # max_price_per_flight=25
     )
 

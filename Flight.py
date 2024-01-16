@@ -26,23 +26,26 @@ class Flight:
             outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
             outbound_flights['departureDay'] = pd.to_datetime(outbound_flights['departureDay'])
 
+            outbound_flights['scrapeDate'] = datetime.datetime.now()
+            outbound_flights['scrapeDate'] = pd.to_datetime(outbound_flights['scrapeDate'])
+
+            outbound_flights['hash'] = outbound_flights.apply(lambda x: hash(
+                tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+
         if not inbound_flights.empty:
             inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
             inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
             inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
             inbound_flights['departureDay'] = pd.to_datetime(inbound_flights['departureDay'])
 
+            inbound_flights['scrapeDate'] = datetime.datetime.now()
+            inbound_flights['scrapeDate'] = pd.to_datetime(inbound_flights['scrapeDate'])
+
+            inbound_flights['hash'] = inbound_flights.apply(lambda x: hash(
+                tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+
         self.return_flights = inbound_flights.reset_index(drop=True)
         self.outbound_flights = outbound_flights.reset_index(drop=True)
-
-        self.return_flights['scrapeDate'] = datetime.datetime.now()
-        self.outbound_flights['scrapeDate'] = datetime.datetime.now()
-
-        self.return_flights['scrapeDate'] = pd.to_datetime(self.return_flights['scrapeDate'])
-        self.outbound_flights['scrapeDate'] = pd.to_datetime(self.outbound_flights['scrapeDate'])
-
-        self.return_flights['hash'] = self.return_flights.apply(lambda x: hash(tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
-        self.outbound_flights['hash'] = self.outbound_flights.apply(lambda x: hash(tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
 
     def __add__(self, other: 'Flight'):
         if isinstance(other, Flight):
