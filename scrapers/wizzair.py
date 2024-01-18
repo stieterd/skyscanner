@@ -205,8 +205,8 @@ class WizzAir(BaseScraper):
                     print(e)
                     print()
 
-            outbound_flights.drop_duplicates().reset_index(drop=True)
-            return_flights.drop_duplicates().reset_index(drop=True)
+            outbound_flights = outbound_flights.drop_duplicates().reset_index(drop=True)
+            return_flights = return_flights.drop_duplicates().reset_index(drop=True)
 
             return Flight(outbound_flights, return_flights)
 
