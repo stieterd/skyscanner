@@ -106,6 +106,8 @@ class EasyJet(BaseScraper):
             availability_return = pd.DataFrame(r.json()['data']['availability']['homebound'])
             availability_return['date'] = pd.to_datetime(availability_return['date'])
         except Exception as e:
+            print(traceback.format_exc())
+            print(url)
             print(e)
             # print(r.text)
             return Flight.empty_flight()
@@ -142,6 +144,8 @@ class EasyJet(BaseScraper):
                 except Exception as e:
                     if flip:
                         # print(r.text)
+                        print(traceback.format_exc())
+                        print(url)
                         print(e)
                         print()
                     else:
@@ -159,6 +163,8 @@ class EasyJet(BaseScraper):
                 except Exception as e:
                     if flip:
                         # print(r.text)
+                        print(traceback.format_exc())
+                        print(url)
                         print(e)
                         print()
                     else:
