@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
             cur_time_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")
 
-            flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv")
-            flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv")
+            flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv", index=False)
+            flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv", index=False)
 
             Proxy.next_proxy()

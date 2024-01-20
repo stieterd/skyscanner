@@ -1,3 +1,6 @@
+import os
+
+import pandas
 from fastapi import FastAPI
 import pandas as pd
 import json
@@ -13,7 +16,15 @@ from Request import Request
 import datetime
 from Flight import Flight
 
+import threading
+import time
+
+import uvicorn
+
 app = FastAPI()
+
+outbound_df = pandas.DataFrame()
+return_df = pandas.DataFrame()
 
 class FlightRequest(BaseModel):
     departure_city: str
@@ -31,6 +42,24 @@ class FlightRequest(BaseModel):
         if isinstance(v, str):
             return datetime.datetime.strptime(v, cls.date_format).date()
         return v
+
+
+class BackgroundTasks(threading.Thread):
+    def run(self, *args, **kwargs):
+        global outbound_df
+        global return_df
+        while True:
+            outputs = os.listdir("output_data")
+            outbound_files = [file for file in outputs if file.startswith('outbound')]
+            return_files = [file for file in outputs if file.startswith('return')]
+            # Find the latest outbound file
+            latest_outbound = max(outbound_files, key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+            # Find the latest return file
+            latest_return = max(return_files, key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+            outbound_df = pandas.read_csv(latest_outbound)
+            return_df = pandas.read_csv(latest_return)
+            time.sleep(60)
+
 
 @app.post("/outbound/")
 async def get_outbound_flights(flight: FlightRequest):
@@ -55,5 +84,9 @@ async def get_outbound_flights(flight: FlightRequest):
         lambda row: row['price'] + (filtered_flight.get_possible_return_flights(row.name, request))['price'].values[0],
         axis=1)
 
-
     return filtered_flight.outbound_flights.to_json(orient="records")
+
+if __name__ == "__main__":
+    t = BackgroundTasks()
+    t.start()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
