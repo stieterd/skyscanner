@@ -1,6 +1,8 @@
 import requests
 import json
 import datetime
+
+from Proxy import Proxy
 from scrapers.BaseScraper import BaseScraper
 from Request import Request
 from Flight import Flight
@@ -51,9 +53,19 @@ class WizzAir(BaseScraper):
         self.airports = pd.json_normalize(cities, record_path=None)
 
     def detect_api_version(self) -> str:
-        proxy = super().get_proxy()
-        r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
+        # proxy = super().get_proxy()
+        proxies = Proxy.proxies
+        r = None
+        for proxy in proxies:
+            try:
+                r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
+                break
+            except Exception as e:
+                print(e)
+                pass
+        if r is None:
+            raise WizzairApiVersionNotFoundException("Wizzair get buildnumber not working correctly")
         pattern = r'\bhttps://be\.wizzair\.com/(\d+\.\d+\.\d+)\b'
         match = re.search(pattern, r.text)
         # Extract the desired substring
@@ -156,7 +168,8 @@ class WizzAir(BaseScraper):
             if not outbound_flights.empty:
                 try:
                     outbound_flights = outbound_flights.explode('departureDates')
-                    outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(drop=True)
+                    outbound_flights = outbound_flights[outbound_flights['priceType'] != "checkPrice"].reset_index(
+                        drop=True)
                     outbound_flights = outbound_flights.drop(
                         columns=['hasMacFlight', 'originalPrice.amount', 'originalPrice.currencyCode', 'departureDate',
                                  'priceType'])
@@ -169,7 +182,8 @@ class WizzAir(BaseScraper):
                     outbound_flights = super().add_country_codes(outbound_flights)
 
                     ticket_url = f"https://wizzair.com/{super().LANGUAGE}-{super().COUNTRY}/#/booking/select-flight/{departure_iata}/{arrival_iata}/"
-                    outbound_flights['ticketUrl'] = ticket_url + outbound_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(str) + "/null/1/0/0/null"
+                    outbound_flights['ticketUrl'] = ticket_url + outbound_flights['departureDate'].dt.strftime(
+                        '%Y-%m-%d').astype(str) + "/null/1/0/0/null"
 
                     # {date}/null/1/0/0/null"
 
@@ -198,7 +212,8 @@ class WizzAir(BaseScraper):
                     return_flights = super().add_country_codes(return_flights)
 
                     ticket_url = f"https://wizzair.com/{super().LANGUAGE}-{super().COUNTRY}/#/booking/select-flight/{arrival_iata}/{departure_iata}/"
-                    return_flights['ticketUrl'] = ticket_url + return_flights['departureDate'].dt.strftime('%Y-%m-%d').astype(str) + "/null/1/0/0/null"
+                    return_flights['ticketUrl'] = ticket_url + return_flights['departureDate'].dt.strftime(
+                        '%Y-%m-%d').astype(str) + "/null/1/0/0/null"
 
                 except Exception as e:
                     return_flights = pd.DataFrame()

@@ -81,12 +81,12 @@ async def test():
     )
     pl = str(request)
     filtered_flight = flight.filter_flights(request)
-    return_flights_data = filtered_flight.outbound_flights.apply(
-        lambda row: filtered_flight.get_possible_return_flights(row.name, request), axis=1)
-
-    filtered_flight.outbound_flights['n_returnflights'] = return_flights_data.apply(lambda df: len(df))
-    filtered_flight.outbound_flights = filtered_flight.outbound_flights[
-        filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
+    # return_flights_data = filtered_flight.outbound_flights.apply(
+    #     lambda row: filtered_flight.get_possible_return_flights(row.name, request), axis=1)
+    #
+    # filtered_flight.outbound_flights['n_returnflights'] = return_flights_data.apply(lambda df: len(df))
+    # filtered_flight.outbound_flights = filtered_flight.outbound_flights[
+    #     filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
 
     # Calculate total cost using the precomputed return flights
     # filtered_flight.outbound_flights['total_cost'] = filtered_flight.outbound_flights.apply(
@@ -144,4 +144,4 @@ async def get_outbound_flights(request: FlightRequest):
 if __name__ == "__main__":
     t = BackgroundTasks()
     t.start()
-    uvicorn.run(app, host="206.189.4.98", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
