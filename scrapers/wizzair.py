@@ -59,6 +59,10 @@ class WizzAir(BaseScraper):
         proxies = Proxy.proxies
         r = None
         for proxy in proxies:
+            proxy = {
+                  'http': proxy,
+                  'https': proxy
+                }
             try:
                 r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
