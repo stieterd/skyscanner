@@ -1,3 +1,5 @@
+import traceback
+
 import requests
 import json
 import datetime
@@ -63,6 +65,7 @@ class WizzAir(BaseScraper):
                 break
             except Exception as e:
                 print(e)
+                print(traceback.format_exc())
                 pass
         if r is None:
             raise WizzairApiVersionNotFoundException("Wizzair get buildnumber not working correctly")
