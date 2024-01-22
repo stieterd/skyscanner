@@ -57,7 +57,7 @@ class WizzAir(BaseScraper):
 
     def detect_api_version(self) -> str:
         # proxy = super().get_proxy()
-        proxies = Proxy.proxies
+        proxies = Proxy.proxies_list
         r = None
         for proxy in proxies:
             proxy = {
@@ -80,6 +80,7 @@ class WizzAir(BaseScraper):
         # Extract the desired substring
         if match:
             result = match.group(1)
+            print("api version found")
             return result
         else:
             print("No match found.")
