@@ -57,8 +57,8 @@ class BackgroundTasks(threading.Thread):
             latest_outbound = max(outbound_files, key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
             # Find the latest return file
             latest_return = max(return_files, key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-            flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}").iloc[: , 1:].reset_index(drop=True), pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}").iloc[: , 1:].reset_index(drop=True))
-            time.sleep(60)
+            flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"), pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+            time.sleep(5*60)
 
 @app.get("/outbound/", response_class=HTMLResponse)
 async def test():
