@@ -65,8 +65,9 @@ class Flight:
         outbound_flights = self.outbound_flights
         return_flights = self.return_flights
 
-        # outbound_flights = outbound_flights[outbound_flights['arrivalStation'] == request.arrival_city].reset_index(drop=True)
-        # return_flights = return_flights[return_flights['departureStation'] == request.arrival_city].reset_index(drop=True)
+        # TODO: fix this shit!!! WE NEED TO BE ABLE TO SCAN FOR A RADIUS OF ARRIVALSTATIONS
+        outbound_flights = outbound_flights[outbound_flights['arrivalStation'] == request.arrival_city].reset_index(drop=True)
+        return_flights = return_flights[return_flights['departureStation'] == request.arrival_city].reset_index(drop=True)
 
         # sort by price
         outbound_flights.sort_values('price', inplace=True)
