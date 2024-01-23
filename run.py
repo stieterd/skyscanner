@@ -32,42 +32,66 @@ def get_flights():
     start_time = time.time()
     # companies = [RyanAir(), EasyJet(), WizzAir(), Vueling(), Volotea()]
     print("start")
+    try:
+        ej = EasyJet()
+        result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
 
-    ej = EasyJet()
-    result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
+        # result_flight_ej = Flight.empty_flight()
+        print(time.time() - start_time)
+        print("Easyjet done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("EasyJet failed")
+        result_flight_ej = Flight.empty_flight()
 
-    # result_flight_ej = Flight.empty_flight()
-    print(time.time() - start_time)
-    print("Easyjet done scraping")
-    print()
+    try:
+        wa = WizzAir()
+        result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
 
-    wa = WizzAir()
-    result_flight_wa = sum(wa.get_possible_flights(request), start=Flight.empty_flight())
+        print(time.time() - start_time)
+        print("Wizzair done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("Wizzair failed")
+        result_flight_wa = Flight.empty_flight()
 
-    print(time.time() - start_time)
-    print("Wizzair done scraping")
-    print()
+    try:
+        vu = Vueling()
+        result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
 
-    vu = Vueling()
-    result_flight_vu = sum(vu.get_possible_flights(request), start=Flight.empty_flight())
+        print(time.time() - start_time)
+        print("Vueling done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("Vueling failed")
+        result_flight_vu = Flight.empty_flight()
 
-    print(time.time() - start_time)
-    print("Vueling done scraping")
-    print()
+    try:
+        vt = Volotea()
+        result_flight_vt = sum(vt.get_possible_flights(request), start=Flight.empty_flight())
 
-    vt = Volotea()
-    result_flight_vt = sum(vt.get_possible_flights(request), start=Flight.empty_flight())
+        print(time.time() - start_time)
+        print("Volotea done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("Volotea failed")
+        result_flight_vt = Flight.empty_flight()
 
-    print(time.time() - start_time)
-    print("Volotea done scraping")
-    print()
+    try:
+        ra = RyanAir()
+        result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
 
-    ra = RyanAir()
-    result_flight_ra = sum(ra.get_possible_flights(request), start=Flight.empty_flight())
-
-    print(time.time() - start_time)
-    print("Ryanair done scraping")
-    print()
+        print(time.time() - start_time)
+        print("Ryanair done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("RyanAir failed")
+        result_flight_ra = Flight.empty_flight()
 
     print(f"Done scraping companies: {time.time() - start_time}")
     result_flights = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt + result_flight_ej

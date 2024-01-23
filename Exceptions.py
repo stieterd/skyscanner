@@ -14,5 +14,8 @@ class DateNotAvailableException(Exception):
 class WizzairApiVersionNotFoundException(Exception):
     pass
 
+class VuelingApiCitiesNotFoundException(Exception):
+    pass
+
 class EmptyDataframeException(Exception):
     pass

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form</title>
+</head>
+<body>
+    <h2>Submit Form</h2>
+    <form method="post" action="/outbound">
+        <label for="departure_city">departure_city:</label>
+        <input type="text" id="departure_city" name="departure_city" required>
+        <br>
+        <label for="arrival_city">arrival_city:</label>
+        <input type="text" id="arrival_city" name="arrival_city" required>
+        <br>
+        <label for="departure_date_first">departure_date_first:</label>
+        <input type="text" id="departure_date_first" name="departure_date_first" required>
+        <br>
+        <label for="departure_date_last">departure_date_last:</label>
+        <input type="text" id="departure_date_last" name="departure_date_last" required>
+        <br>
+        <label for="arrival_date_first">arrival_date_first:</label>
+        <input type="text" id="arrival_date_first" name="arrival_date_first" required>
+        <br>
+        <label for="arrival_date_last">arrival_date_last:</label>
+        <input type="text" id="arrival_date_last" name="arrival_date_last" required>
+        <br>
+        <label for="min_days_stay">min_days_stay:</label>
+        <input type="text" id="min_days_stay" name="min_days_stay" required>
+        <br>
+        <label for="max_days_stay">max_days_stay:</label>
+        <input type="text" id="max_days_stay" name="max_days_stay" required>
+        <br>
+        <label for="airport_radius">airport_radius:</label>
+        <input type="text" id="airport_radius" name="airport_radius" required>
+        <br>
+        <label for="max_price_per_flight">max_price_per_flight:</label>
+        <input type="text" id="max_price_per_flight" name="max_price_per_flight" required>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

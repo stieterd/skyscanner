@@ -1,8 +1,10 @@
+import time
 import traceback
 
 from Airport import Airport
-from Exceptions import DateNotAvailableException
+from Exceptions import DateNotAvailableException, VuelingApiCitiesNotFoundException
 from Flight import Flight
+from Proxy import Proxy
 from Request import Request
 from scrapers.BaseScraper import BaseScraper
 import requests
@@ -42,9 +44,23 @@ class Vueling(BaseScraper):
         """
         # https://apiwww.vueling.com/api/Markets/GetAllMarketsSearcher
         url = super().get_api_url('Markets', 'GetAllMarketsSearcher')
-        proxy = super().get_proxy()
-        r = requests.get(url, proxies=proxy, headers=self.headers)
-        return r.json()
+        proxies = Proxy.proxies_list
+        r = None
+        for proxy in proxies:
+            proxy = {
+                'http': proxy,
+                'https': proxy
+            }
+            try:
+                r = requests.get(url, proxies=proxy, headers=self.headers)
+                return r.json()
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+                time.sleep(3)
+                pass
+
+        raise VuelingApiCitiesNotFoundException("Vueling could not find the cities")
 
     def get_possible_flight(self, arrival_iata: str, departure_iata: str, request: Request) -> Flight:
         """
