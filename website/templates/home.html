@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 align="center">Triages</h1>
+<ul class="list-group list-group-flush" id="triages">
+    {% for triage in user.triages%}
+    <a class="list-group-item" href="{{ url_for('views.triage', triage_id=triage.id) }}">
+        {{ triage.data}} #{{ loop.index }}
+        <a href="deleteTriage/{{ triage.id }}">
+          <span aria-hidden="true">&times;</span>
+        </a>
+      </a>
+    {% endfor %}
+</ul>
+{%endblock%}

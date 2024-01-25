@@ -90,17 +90,32 @@ class Request:
         self.arrival_date_first = arrival_date_first
         self.arrival_date_last = arrival_date_last
 
-        self.min_days_stay = min_days_stay
-        self.max_days_stay = max_days_stay
+        if min_days_stay is None:
+            self.min_days_stay = 0
+        else:
+            self.min_days_stay = min_days_stay
+
+        if max_days_stay is None:
+            self.max_days_stay = 99999999
+        else:
+            self.max_days_stay = max_days_stay
+
         self.available_departure_weekdays = available_departure_weekdays
         self.available_arrival_weekdays = available_arrival_weekdays
 
-        self.airport_radius = airport_radius
+        if airport_radius is None:
+            self.airport_radius = 0
+        else:
+            self.airport_radius = airport_radius
+
         self.max_travel_time = max_travel_time
         self.earliest_travel_time = earliest_travel_time
         self.latest_travel_time = latest_travel_time
 
-        self.max_price_per_flight = max_price_per_flight
+        if max_price_per_flight is None:
+            self.max_price_per_flight = 99999999
+        else:
+            self.max_price_per_flight = max_price_per_flight
 
     def __str__(self):
         """

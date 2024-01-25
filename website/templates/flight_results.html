@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<br/>
+    <h1>Outbound Flights</h1>
+    <table  style="border:1px solid black; width:100%;">
+        <thead>
+            <tr>
+                <th scope="col" style="padding:15px;">Row</th>
+                <th scope="col" style="padding:15px;">Departure Station</th>
+                <th scope="col" style="padding:15px;">Arrival Station</th>
+                <th scope="col" style="padding:15px;">Departure Date</th>
+                <th scope="col" style="padding:15px;">Arrival Date</th>
+                <th scope="col" style="padding:15px;">Price</th>
+                <th scope="col" style="padding:15px;">Weekday</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for flight in outbound_flights %}
+            {% if loop.index <= 100 %}
+
+            <tr>
+                <th scope="row">{{loop.index}}</th>
+                <td style="padding:15px;">{{ flight.departureStation }}</td>
+                <td style="padding:15px;">{{ flight.arrivalStation }}</td>
+                <td style="padding:15px;">{{ flight.departureDate }}</td>
+                <td style="padding:15px;">{{ flight.arrivalDate }}</td>
+                <td style="padding:15px;">{{ flight.price }}</td>
+                <td style="padding:15px;">{{ flight.weekday }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+<br />
+{% endblock %}
