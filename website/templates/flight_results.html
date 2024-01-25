@@ -8,25 +8,52 @@
                 <th scope="col" style="padding:15px;">Row</th>
                 <th scope="col" style="padding:15px;">Departure Station</th>
                 <th scope="col" style="padding:15px;">Arrival Station</th>
-                <th scope="col" style="padding:15px;">Departure Date</th>
-                <th scope="col" style="padding:15px;">Arrival Date</th>
-                <th scope="col" style="padding:15px;">Price</th>
-                <th scope="col" style="padding:15px;">Weekday</th>
+
+                <th scope="col" style="padding:15px;">Departure Date Outbound</th>
+                <th scope="col" style="padding:15px;">Arrival Date Outbound</th>
+                <th scope="col" style="padding:15px;">Departure Date Inbound</th>
+                <th scope="col" style="padding:15px;">Arrival Date Inbound</th>
+
+                <th scope="col" style="padding:15px;">Price Outbound</th>
+                <th scope="col" style="padding:15px;">Price Inbound</th>
+
+                <th scope="col" style="padding:15px;">Company Outbound</th>
+                <th scope="col" style="padding:15px;">Company Inbound</th>
+                <th scope="col" style="padding:15px;">URL Outbound</th>
+                <th scope="col" style="padding:15px;">URL Inbound</th>
+
+                <th scope="col" style="padding:15px;">Total Cost</th>
             </tr>
         </thead>
         <tbody>
-            {% for flight in outbound_flights %}
-            {% if loop.index <= 100 %}
+            {% for key, grouped_flight in flights.items() %}
+            {% set outer_loop = loop %}
+            {% if outer_loop.index <= 1000 %}
+            {% for flight in grouped_flight %}
 
             <tr>
-                <th scope="row">{{loop.index}}</th>
-                <td style="padding:15px;">{{ flight.departureStation }}</td>
-                <td style="padding:15px;">{{ flight.arrivalStation }}</td>
-                <td style="padding:15px;">{{ flight.departureDate }}</td>
-                <td style="padding:15px;">{{ flight.arrivalDate }}</td>
-                <td style="padding:15px;">{{ flight.price }}</td>
-                <td style="padding:15px;">{{ flight.weekday }}</td>
+                <th scope="row">{{outer_loop.index}}</th>
+                <td style="padding:15px;">{{ flight.departureStation_x }}</td>
+                <td style="padding:15px;">{{ flight.arrivalStation_x }}</td>
+
+                <td style="padding:15px;">{{ flight.departureDate_x }}</td>
+                <td style="padding:15px;">{{ flight.arrivalDate_x }}</td>
+                <td style="padding:15px;">{{ flight.departureDate_y }}</td>
+                <td style="padding:15px;">{{ flight.arrivalDate_y }}</td>
+
+                <td style="padding:15px;">{{ flight.price_x }}</td>
+                <td style="padding:15px;">{{ flight.price_y }}</td>
+
+                <td style="padding:15px;">{{ flight.company_x }}</td>
+                <td style="padding:15px;">{{ flight.company_y }}</td>
+
+                <td style="padding:15px;"><a href="{{ flight.ticketUrl_x }}">press me</a></td>
+                <td style="padding:15px;"><a href="{{ flight.ticketUrl_y }}">press me</a></td>
+
+                <td style="padding:15px;">{{ flight.total_cost }}</td>
             </tr>
+
+            {% endfor %}
             {% endif %}
             {% endfor %}
         </tbody>

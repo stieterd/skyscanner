@@ -38,6 +38,9 @@ class Request:
     earliest_travel_time: datetime.time
     latest_travel_time: datetime.time
 
+    available_departure_weekdays: tuple[int, ...]
+    available_arrival_weekdays: tuple[int, ...]
+
     max_price_per_flight: int
 
     def __init__(self,
@@ -143,6 +146,31 @@ class Request:
 
         if self.departure_country != None:
             departure_airports_df = Airport.get_airports_by_country(self.departure_country)
+            return departure_airports_df
+
+        else:
+            return Airport.all_airports_df
+
+    def get_requested_arrival_airports_df(self) -> pandas.DataFrame:
+        """
+        @return: Dataframe containing available departure airports
+        """
+
+        if self.arrival_city != None:
+
+            iata = self.arrival_city
+            departure_airports_df = Airport.get_airports_by_iata(iata)
+
+            if self.airport_radius > 0:
+                lat = departure_airports_df.at[0, 'lat']
+                long = departure_airports_df.at[0, 'lon']
+                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+
+            else:
+                return departure_airports_df
+
+        if self.arrival_country != None:
+            departure_airports_df = Airport.get_airports_by_country(self.arrival_country)
             return departure_airports_df
 
         else:

@@ -21,6 +21,8 @@ import threading
 import json
 import time
 
+# Function to encode python datetime objects to convert into the .json file
+
 def testing():
     start_time = time.time()
 
@@ -131,6 +133,7 @@ def testing():
     print(time.time() - start_time)
     print("flights filtered")
     print()
+
 
     return_flights_data = filtered_flight.outbound_flights.apply(
         lambda row: filtered_flight.get_possible_return_flights(row.name, request), axis=1)

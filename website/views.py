@@ -80,17 +80,13 @@ def show_results(triage_id):
                         pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
 
         filtered_flight = flight.filter_flights(flight_request)
-        return_flights_data = filtered_flight.outbound_flights.apply(
-            lambda row: filtered_flight.get_possible_return_flights(row.name, flight_request), axis=1)
 
-        filtered_flight.outbound_flights['n_returnflights'] = return_flights_data.apply(lambda df: len(df))
-        filtered_flight.outbound_flights = filtered_flight.outbound_flights[
-            filtered_flight.outbound_flights['n_returnflights'] > 0].reset_index(drop=True)
-
-        outbound_flights_json = filtered_flight.outbound_flights.to_json(orient="records")
-        return_flights_json = return_flights_data.to_json(orient='records')
+        result_df = filtered_flight.get_possible_return_flights_df(flight_request)
+        result_group = result_df.groupby('hash_x')
+        result_dict = result_group.apply(lambda x: x.to_dict(orient='records')).to_dict()
+        # result_json = json.dumps(result_dict, default=Flight.date_json_encoder)
         # return jsonify({'outbound': json.loads(outbound_flights_json), 'return': json.loads(return_flights_json)})
-        return render_template('flight_results.html', outbound_flights=json.loads(outbound_flights_json), return_flights=json.loads(return_flights_json), user=current_user)
+        return render_template('flight_results.html', flights=result_dict, user=current_user)
 
 
 @views.route('/triage/<int:triage_id>', methods=['GET', 'POST'])

@@ -20,7 +20,6 @@ class Flight:
     def __init__(self, outbound_flights: pd.DataFrame, inbound_flights: pd.DataFrame) -> None:
 
         if not outbound_flights.empty:
-
             outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
             outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'])
             outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
@@ -49,8 +48,10 @@ class Flight:
 
     def __add__(self, other: 'Flight'):
         if isinstance(other, Flight):
-            outbound_flights = pd.concat([self.outbound_flights, other.outbound_flights]).reset_index(drop=True).dropna(axis=1, how='all')
-            return_flights = pd.concat([self.return_flights, other.return_flights]).reset_index(drop=True).dropna(axis=1, how='all')
+            outbound_flights = pd.concat([self.outbound_flights, other.outbound_flights]).reset_index(drop=True).dropna(
+                axis=1, how='all')
+            return_flights = pd.concat([self.return_flights, other.return_flights]).reset_index(drop=True).dropna(
+                axis=1, how='all')
             return Flight(outbound_flights, return_flights)
         elif isinstance(other, int):
             return self
@@ -67,8 +68,16 @@ class Flight:
 
         # TODO: fix this shit!!! WE NEED TO BE ABLE TO SCAN FOR A RADIUS OF ARRIVALSTATIONS
         if request.arrival_city is not None:
-            outbound_flights = outbound_flights[outbound_flights['arrivalStation'] == request.arrival_city].reset_index(drop=True)
-            return_flights = return_flights[return_flights['departureStation'] == request.arrival_city].reset_index(drop=True)
+            outbound_flights = outbound_flights[outbound_flights['arrivalStation'].isin(
+                request.get_requested_arrival_airports_df()['iata'])].reset_index(drop=True)
+            return_flights = return_flights[return_flights['departureStation'].isin(
+                request.get_requested_arrival_airports_df()['iata'])].reset_index(drop=True)
+
+        if request.departure_city is not None:
+            outbound_flights = outbound_flights[outbound_flights['departureStation'].isin(
+                request.get_requested_departure_airports_df()['iata'])].reset_index(drop=True)
+            return_flights = return_flights[return_flights['arrivalStation'].isin(
+                request.get_requested_departure_airports_df()['iata'])].reset_index(drop=True)
 
         # sort by price
         outbound_flights.sort_values('price', inplace=True)
@@ -83,15 +92,16 @@ class Flight:
         # get correct dates
         cheap_outbound_flights = cheap_outbound_flights[
             (request.departure_date_first <= cheap_outbound_flights['departureDate'].dt.date) & (
-                        cheap_outbound_flights['departureDate'].dt.date <= request.departure_date_last)].reset_index(
+                    cheap_outbound_flights['departureDate'].dt.date <= request.departure_date_last)].reset_index(
             drop=True)
         cheap_return_flights = cheap_return_flights[
             (request.arrival_date_first <= cheap_return_flights['departureDate'].dt.date) & (
-                        cheap_return_flights['departureDate'].dt.date <= request.arrival_date_last)].reset_index(
+                    cheap_return_flights['departureDate'].dt.date <= request.arrival_date_last)].reset_index(
             drop=True)
 
         # add day of week as columns
-        cheap_outbound_flights = cheap_outbound_flights[cheap_outbound_flights['departureDate'].dt.dayofweek.isin(request.available_departure_weekdays)]
+        cheap_outbound_flights = cheap_outbound_flights[
+            cheap_outbound_flights['departureDate'].dt.dayofweek.isin(request.available_departure_weekdays)]
         cheap_outbound_flights['weekday'] = cheap_outbound_flights['departureDate'].dt.day_name()
         cheap_return_flights['weekday'] = cheap_return_flights['departureDate'].dt.day_name()
 
@@ -121,17 +131,37 @@ class Flight:
 
         if request.min_days_stay:
             returnfl = returnfl[returnfl['travel_days'] >= request.min_days_stay].reset_index(
-            drop=True)
+                drop=True)
 
         if request.max_days_stay:
             returnfl = returnfl[returnfl['travel_days'] < request.max_days_stay].reset_index(
-            drop=True)
+                drop=True)
 
         return returnfl
 
-    def get_possible_return_flights1(self, row, request: Request):
-        # Airport.arrival_station_radius_lambda(row, request.airport_radius)
-        pass
+    def get_possible_return_flights_df(self, request: Request):
+
+        result_df = pd.merge(self.outbound_flights, self.return_flights, left_on='arrivalStation',
+                             right_on="departureStation")
+        result_df['travel_days'] = (result_df['departureDay_x'] - result_df['departureDay_y']).dt.days
+        result_df = result_df[result_df['departureDate_x'] > result_df['departureDate_y']]
+        result_df = result_df[
+            result_df['departureDate_x'].dt.dayofweek.isin(request.available_departure_weekdays) & result_df[
+                'departureDate_y'].dt.dayofweek.isin(request.available_arrival_weekdays)]
+
+        result_df = result_df[(result_df['travel_days'] >= 0) & (result_df['travel_days'] >= request.min_days_stay) & (
+                    result_df['travel_days'] < request.max_days_stay)].reset_index(drop=True)
+        result_df['total_cost'] = result_df['price_x'] + result_df['price_y']
+
+        result_df.sort_values('total_cost', inplace=True)
+
+        return result_df
+
+    # TODO: I dont know what to do with this so I guess Ill just leave it here
+    @staticmethod
+    def date_json_encoder(value: datetime.datetime) -> str:
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            return value.isoformat()
 
     @classmethod
     def empty_flight(cls):
