@@ -1,8 +1,9 @@
-{% extends "base.html" %}
-{% block content %}
+<html>
+<head></head>
+<body>
 <br/>
     <h1>Outbound Flights</h1>
-    <table  style="border:1px solid black; width:100%;">
+    <table  style="border:1px solid black; width:90%;">
         <thead>
             <tr>
                 <th scope="col" style="padding:15px;">Row</th>
@@ -40,8 +41,8 @@
                 <td style="padding:15px;">{{ flight.departureDate_y }}</td>
                 <td style="padding:15px;">{{ flight.arrivalDate_y }}</td>
 
-                <td style="padding:15px;">{{ flight.price_x }}</td>
-                <td style="padding:15px;">{{ flight.price_y }}</td>
+                <td style="padding:15px;">{{ '%0.2f'| format(flight.price_x|float) }}</td>
+                <td style="padding:15px;">{{ '%0.2f'| format(flight.price_y|float) }}</td>
 
                 <td style="padding:15px;">{{ flight.company_x }}</td>
                 <td style="padding:15px;">{{ flight.company_y }}</td>
@@ -49,7 +50,7 @@
                 <td style="padding:15px;"><a href="{{ flight.ticketUrl_x }}">press me</a></td>
                 <td style="padding:15px;"><a href="{{ flight.ticketUrl_y }}">press me</a></td>
 
-                <td style="padding:15px;">{{ flight.total_cost }}</td>
+                <td style="padding:15px;">{{ '%0.2f'| format(flight.total_cost|float) }}</td>
             </tr>
 
             {% endif %}
@@ -57,4 +58,5 @@
         </tbody>
     </table>
 <br />
-{% endblock %}
+</body>
+</html>

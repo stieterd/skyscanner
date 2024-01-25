@@ -10,6 +10,7 @@ from Request import Request
 from Flight import Flight
 
 import threading
+
 import os
 import pandas
 import time
@@ -17,7 +18,26 @@ import time
 OUTPUT_DIR = "output_data"
 
 views = Blueprint('views', __name__)
+flight = Flight.empty_flight()
 
+def threaded_func():
+    global flight
+    while True:
+        outputs = os.listdir(OUTPUT_DIR)
+        outbound_files = [file for file in outputs if file.startswith('outbound')]
+        return_files = [file for file in outputs if file.startswith('return')]
+        # Find the latest outbound file
+        latest_outbound = max(outbound_files,
+                              key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+        # Find the latest return file
+        latest_return = max(return_files,
+                            key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+        flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
+                        pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+        time.sleep(10*60)
+
+
+threading._start_new_thread(threaded_func, ())
 
 def date_hook(json_dict):
     for (key, value) in json_dict.items():
@@ -67,17 +87,9 @@ def show_results(triage_id):
 
         flight_request = Request(**content_dict)
 
-        outputs = os.listdir(OUTPUT_DIR)
-        outbound_files = [file for file in outputs if file.startswith('outbound')]
-        return_files = [file for file in outputs if file.startswith('return')]
-        # Find the latest outbound file
-        latest_outbound = max(outbound_files,
-                              key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-        # Find the latest return file
-        latest_return = max(return_files,
-                            key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-        flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
-                        pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+        if flight.outbound_flights.empty and flight.return_flights.empty:
+            return render_template('flight_results.html', flights=[],
+                                   user=current_user)
 
         filtered_flight = flight.filter_flights(flight_request)
 
