@@ -82,11 +82,12 @@ def show_results(triage_id):
         filtered_flight = flight.filter_flights(flight_request)
 
         result_df = filtered_flight.get_possible_return_flights_df(flight_request)
-        result_group = result_df.groupby('hash_x')
-        result_dict = result_group.apply(lambda x: x.to_dict(orient='records')).to_dict()
+        # result_group = result_df.groupby('hash_x')
+        # result_dict = result_group.apply(lambda x: x.to_dict(orient='records')).to_dict()
+
         # result_json = json.dumps(result_dict, default=Flight.date_json_encoder)
         # return jsonify({'outbound': json.loads(outbound_flights_json), 'return': json.loads(return_flights_json)})
-        return render_template('flight_results.html', flights=result_dict, user=current_user)
+        return render_template('flight_results.html', flights=result_df.to_dict(orient='records'), user=current_user)
 
 
 @views.route('/triage/<int:triage_id>', methods=['GET', 'POST'])
