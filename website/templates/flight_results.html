@@ -32,7 +32,7 @@
             {% for flight in grouped_flight %}
 
             <tr>
-                <th scope="row">{{outer_loop.index}}</th>
+                <th scope="row">{{loop.index}}</th>
                 <td style="padding:15px;">{{ flight.departureStation_x }}</td>
                 <td style="padding:15px;">{{ flight.arrivalStation_x }}</td>
 
