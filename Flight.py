@@ -67,8 +67,8 @@ class Flight:
         return_flights = self.return_flights
 
         # TODO: fix this!!! WE NEED TO BE ABLE TO GO TO WEEST, BUT THIS SHOULD BE AN OPTION IN SITE
-        outbound_flights = outbound_flights[outbound_flights['arrivalStation'] != "NRN"]
-        return_flights = return_flights[return_flights['departureStation'] != "NRN"]
+        outbound_flights = outbound_flights[outbound_flights['departureStation'] != "NRN"]
+        return_flights = return_flights[return_flights['arrivalStation'] != "NRN"]
 
 
         if request.arrival_city is not None:
