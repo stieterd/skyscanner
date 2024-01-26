@@ -46,10 +46,10 @@ def threaded_func():
                         key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
     flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
                     pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
-    print(len(flight.outbound_flights))
-    print(len(flight.return_flights))
-    print(time.time())
-    print()
+    # print(len(flight.outbound_flights))
+    # print(len(flight.return_flights))
+    # print(time.time())
+    # print()
 
 
 scheduler = BackgroundScheduler()
@@ -92,8 +92,6 @@ def show_results(triage_id):
     global flight
     if request.method == 'GET':
 
-        print(len(flight.outbound_flights))
-
         p = Triage.query.filter_by(id=triage_id, user_id=current_user.id).first()
         content_dict = json.loads(p.content, object_hook=date_hook)
 
@@ -111,7 +109,7 @@ def show_results(triage_id):
 
         flight_request = Request(**content_dict)
 
-        if flight.outbound_flights.empty and flight.return_flights.empty:
+        if len(flight.outbound_flights) <= 0 and len(flight.return_flights) <= 0:
             return render_template('flight_results.html', flights=[],
                                    user=current_user)
 
