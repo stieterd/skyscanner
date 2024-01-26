@@ -23,27 +23,26 @@ flight = Flight.empty_flight()
 
 def threaded_func():
     global flight
-    while True:
-        outputs = os.listdir(OUTPUT_DIR)
-        outbound_files = [file for file in outputs if file.startswith('outbound')]
-        return_files = [file for file in outputs if file.startswith('return')]
-        # Find the latest outbound file
-        latest_outbound = max(outbound_files,
-                              key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-        # Find the latest return file
-        latest_return = max(return_files,
-                            key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-        flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
-                        pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
-        print(len(flight.outbound_flights))
-        print(len(flight.return_flights))
-        print(time.time())
-        print()
-        time.sleep(10*60)
+
+    outputs = os.listdir(OUTPUT_DIR)
+    outbound_files = [file for file in outputs if file.startswith('outbound')]
+    return_files = [file for file in outputs if file.startswith('return')]
+    # Find the latest outbound file
+    latest_outbound = max(outbound_files,
+                          key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+    # Find the latest return file
+    latest_return = max(return_files,
+                        key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
+    flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
+                    pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+    print(len(flight.outbound_flights))
+    print(len(flight.return_flights))
+    print(time.time())
+    print()
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=threaded_func, trigger="interval", seconds=60)
+scheduler.add_job(func=threaded_func, trigger="interval", seconds=600)
 scheduler.start()
 
 # Shut down the scheduler when exiting the app
