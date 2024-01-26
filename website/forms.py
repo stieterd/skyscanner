@@ -12,7 +12,7 @@ class RequestForm(FlaskForm):
             super(RequestForm.OptionalIfEmpty, self).__call__(form, field)
 
     departure_city = SelectField('Departure city',
-                                 choices=[('AMS', 'AMS'), ('RTM', 'RTM'), ('EIN', 'EIN'), ('NRN', 'NRN'),
+                                 choices=[('AMS', 'AMS'), ('RTM', 'RTM'), ('EIN', 'EIN'), ('MST', 'MST'), ('NRN', 'NRN'),
                                           ('BRU', 'BRU')])
     arrival_city = StringField('Arrival city (Optional)',
                                validators=[OptionalIfEmpty(max=3, message="Use city code of 3 characters")])
