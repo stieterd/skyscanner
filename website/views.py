@@ -87,7 +87,6 @@ def add_triage():
 
 
 @views.route('/showResults/<int:triage_id>', methods=['GET'])
-@login_required
 def show_results(triage_id):
     global flight
     if request.method == 'GET':
@@ -106,9 +105,7 @@ def show_results(triage_id):
                 content_dict[key] = float(value)
             except Exception as e:
                 pass
-        print(len(flight.outbound_flights))
-        print(len(flight.return_flights))
-        print('ba')
+
         flight_request = Request(**content_dict)
 
         if len(flight.outbound_flights) <= 0 and len(flight.return_flights) <= 0:
@@ -116,10 +113,6 @@ def show_results(triage_id):
                                    user=current_user)
 
         filtered_flight = flight.filter_flights(flight_request)
-
-        print(len(filtered_flight.outbound_flights))
-        print(len(filtered_flight.return_flights))
-        print('a')
 
         result_df = filtered_flight.get_possible_return_flights_df(flight_request)
         # result_group = result_df.groupby('hash_x')
