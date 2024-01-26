@@ -14,19 +14,19 @@ class RequestForm(FlaskForm):
     departure_city = SelectField('Departure city',
                                  choices=[('AMS', 'AMS'), ('RTM', 'RTM'), ('EIN', 'EIN'), ('NRN', 'NRN'),
                                           ('BRU', 'BRU')])
-    arrival_city = StringField('Arrival city',
+    arrival_city = StringField('Arrival city (Optional)',
                                validators=[OptionalIfEmpty(max=3, message="Use city code of 3 characters")])
     departure_date_first = DateField('Your first feasible departure date', format='%Y-%m-%d')
     departure_date_last = DateField('Your last feasible departure date', format='%Y-%m-%d')
     arrival_date_first = DateField('Your first feasible arrival date', format='%Y-%m-%d')
     arrival_date_last = DateField('Your last feasible arrival date', format='%Y-%m-%d')
 
-    min_days_stay = IntegerField('Minimum days stay',
+    min_days_stay = IntegerField('Minimum days stay (Optional)',
                                  validators=[Optional(), NumberRange(min=1, message="Minimum 1 day")])
-    max_days_stay = IntegerField('Maximum days stay',
+    max_days_stay = IntegerField('Maximum days stay (Optional)',
                                  validators=[Optional(), NumberRange(min=1, message="Minimum 1 day")])
 
-    airport_radius = IntegerField('Airport radius (km)',
+    airport_radius = IntegerField('Airport radius (km) (Optional)',
                                   validators=[Optional(), NumberRange(min=0, message="Minimum 0 km")])
 
-    max_price_per_flight = IntegerField("Max price flight (euro)", validators=[Optional(), NumberRange(min=20, message="Minimum 20 euro")])
+    max_price_per_flight = IntegerField("Max price flight (euro) (Optional)", validators=[Optional(), NumberRange(min=20, message="Minimum 20 euro")])
