@@ -7,8 +7,10 @@
         <thead>
             <tr>
                 <th scope="col" style="padding:15px;">Row</th>
-                <th scope="col" style="padding:15px;">Departure Station</th>
-                <th scope="col" style="padding:15px;">Arrival Station</th>
+                <th scope="col" style="padding:15px;">Departure Station Outbound</th>
+                <th scope="col" style="padding:15px;">Arrival Station Outbound</th>
+                <th scope="col" style="padding:15px;">Departure Station Inbound</th>
+                <th scope="col" style="padding:15px;">Arrival Station Inbound</th>
 
                 <th scope="col" style="padding:15px;">Departure Date Outbound</th>
                 <th scope="col" style="padding:15px;">Arrival Date Outbound</th>
@@ -35,6 +37,8 @@
                 <th scope="row">{{loop.index}}</th>
                 <td style="padding:15px;">{{ flight.departureStation_x }}</td>
                 <td style="padding:15px;">{{ flight.arrivalStation_x }}</td>
+                <td style="padding:15px;">{{ flight.departureStation_y }}</td>
+                <td style="padding:15px;">{{ flight.arrivalStation_y }}</td>
 
                 <td style="padding:15px;">{{ flight.departureDate_x }}</td>
                 <td style="padding:15px;">{{ flight.arrivalDate_x }}</td>
