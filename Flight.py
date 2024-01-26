@@ -66,7 +66,11 @@ class Flight:
         outbound_flights = self.outbound_flights
         return_flights = self.return_flights
 
-        # TODO: fix this shit!!! WE NEED TO BE ABLE TO SCAN FOR A RADIUS OF ARRIVALSTATIONS
+        # TODO: fix this!!! WE NEED TO BE ABLE TO GO TO WEEST, BUT THIS SHOULD BE AN OPTION IN SITE
+        outbound_flights = outbound_flights[outbound_flights['arrivalStation'] != "NRN"]
+        return_flights = return_flights[return_flights['departureStation'] != "NRN"]
+
+
         if request.arrival_city is not None:
             outbound_flights = outbound_flights[outbound_flights['arrivalStation'].isin(
                 request.get_requested_arrival_airports_df()['iata'])].reset_index(drop=True)
