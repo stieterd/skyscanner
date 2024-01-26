@@ -91,7 +91,7 @@ def show_results(triage_id):
     global flight
     if request.method == 'GET':
 
-        p = Triage.query.filter_by(id=triage_id, user_id=current_user.id).first()
+        p = Triage.query.filter_by(id=triage_id).first()
         content_dict = json.loads(p.content, object_hook=date_hook)
 
         ## TODO: THIS IS A RETARDED FIX, NEED TO CHANGE THIS ASAP
