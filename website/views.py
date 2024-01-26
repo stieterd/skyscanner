@@ -42,10 +42,8 @@ def threaded_func():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=threaded_func, trigger="interval", seconds=600)
+scheduler.add_job(func=threaded_func, trigger="interval", seconds=60)
 scheduler.start()
-
-threaded_func()
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
