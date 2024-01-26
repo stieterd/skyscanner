@@ -42,8 +42,8 @@
                 <td style="padding:15px;">{{ flight.departureDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td style="padding:15px;">{{ flight.arrivalDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
 
-                <td style="padding:15px;">{{ '%0.2f'| format(flight.price_x|float) }}</td>
-                <td style="padding:15px;">{{ '%0.2f'| format(flight.price_y|float) }}</td>
+                <td style="padding:15px;">€{{ '%0.2f'| format(flight.price_x|float) }}</td>
+                <td style="padding:15px;">€{{ '%0.2f'| format(flight.price_y|float) }}</td>
 
                 <td style="padding:15px;">{{ flight.company_x }}</td>
                 <td style="padding:15px;">{{ flight.company_y }}</td>
@@ -51,7 +51,7 @@
                 <td style="padding:15px;"><a href="{{ flight.ticketUrl_x }}">press me</a></td>
                 <td style="padding:15px;"><a href="{{ flight.ticketUrl_y }}">press me</a></td>
 
-                <td style="padding:15px;">{{ '%0.2f'| format(flight.total_cost|float) }}</td>
+                <td style="padding:15px;">€{{ '%0.2f'| format(flight.total_cost|float) }}</td>
             </tr>
 
             {% endfor %}
