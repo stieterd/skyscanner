@@ -6,7 +6,6 @@
     <table  style="border:1px solid black; width:90%;">
         <thead>
             <tr>
-                <th scope="col" style="padding:15px;">Row</th>
                 <th scope="col" style="padding:15px;">Departure Station Outbound</th>
                 <th scope="col" style="padding:15px;">Arrival Station Outbound</th>
                 <th scope="col" style="padding:15px;">Departure Station Inbound</th>
@@ -33,16 +32,15 @@
             {% for flight in flights %}
 
             <tr>
-                <th scope="row">{{loop.index}}</th>
-                <td style="padding:15px;">{{ flight.departureStation_x }}</td>
-                <td style="padding:15px;">{{ flight.arrivalStation_x }}</td>
-                <td style="padding:15px;">{{ flight.departureStation_y }}</td>
-                <td style="padding:15px;">{{ flight.arrivalStation_y }}</td>
+                <td style="padding:15px;">{{ flight.departureStation_x }} <br> ({{ flight.departureCountryCode_x }})</td>
+                <td style="padding:15px;">{{ flight.arrivalStation_x }} <br> ({{ flight.arrivalCountryCode_x }})</td>
+                <td style="padding:15px;">{{ flight.departureStation_y }} <br> ({{flight.departureCountryCode_y}})</td>
+                <td style="padding:15px;">{{ flight.arrivalStation_y }} <br> ({{flight.arrivalCountryCode_y}})</td>
 
-                <td style="padding:15px;">{{ flight.departureDate_x }}</td>
-                <td style="padding:15px;">{{ flight.arrivalDate_x }}</td>
-                <td style="padding:15px;">{{ flight.departureDate_y }}</td>
-                <td style="padding:15px;">{{ flight.arrivalDate_y }}</td>
+                <td style="padding:15px;">{{ flight.departureDate_x.strftime('%Y-%m-%d %H:%M')  }}</td>
+                <td style="padding:15px;">{{ flight.arrivalDate_x.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td style="padding:15px;">{{ flight.departureDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td style="padding:15px;">{{ flight.arrivalDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
 
                 <td style="padding:15px;">{{ '%0.2f'| format(flight.price_x|float) }}</td>
                 <td style="padding:15px;">{{ '%0.2f'| format(flight.price_y|float) }}</td>
