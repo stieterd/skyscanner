@@ -106,7 +106,8 @@ def show_results(triage_id):
                 content_dict[key] = float(value)
             except Exception as e:
                 pass
-
+        print(len(flight.outbound_flights))
+        print(len(flight.return_flights))
         flight_request = Request(**content_dict)
 
         if len(flight.outbound_flights) <= 0 and len(flight.return_flights) <= 0:
