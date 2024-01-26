@@ -143,8 +143,8 @@ class Flight:
 
         result_df = pd.merge(self.outbound_flights, self.return_flights, left_on='arrivalStation',
                              right_on="departureStation")
-        result_df['travel_days'] = (result_df['departureDay_x'] - result_df['departureDay_y']).dt.days
-        result_df = result_df[result_df['departureDate_x'] > result_df['departureDate_y']]
+        result_df['travel_days'] = (result_df['departureDay_y'] - result_df['departureDay_x']).dt.days
+        result_df = result_df[result_df['departureDate_y'] > result_df['departureDate_x']]
         result_df = result_df[
             result_df['departureDate_x'].dt.dayofweek.isin(request.available_departure_weekdays) & result_df[
                 'departureDate_y'].dt.dayofweek.isin(request.available_arrival_weekdays)]

@@ -8,8 +8,9 @@ from .forms import RequestForm
 
 from Request import Request
 from Flight import Flight
-
+import atexit
 import threading
+from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
 import pandas
@@ -37,7 +38,12 @@ def threaded_func():
         time.sleep(10*60)
 
 
-threading._start_new_thread(threaded_func, ())
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=threaded_func, trigger="interval", seconds=60)
+scheduler.start()
+
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
 
 def date_hook(json_dict):
     for (key, value) in json_dict.items():
