@@ -35,6 +35,10 @@ def threaded_func():
                             key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
         flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
                         pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+        print(len(flight.outbound_flights))
+        print(len(flight.return_flights))
+        print(time.time())
+        print()
         time.sleep(10*60)
 
 
