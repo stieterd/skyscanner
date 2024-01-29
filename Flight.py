@@ -117,7 +117,7 @@ class Flight:
         airports_radius_df = Airport.get_airports_by_radius(
             iata_airport['lon'].iloc[0],
             iata_airport['lat'].iloc[0],
-            request.airport_radius
+            request.departure_airport_radius
         )
 
         self.return_flights['travel_days'] = (

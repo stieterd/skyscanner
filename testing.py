@@ -28,17 +28,18 @@ def testing():
 
     request = Request(
         departure_city="EIN",
-        arrival_city="BCN",
-        departure_date_first=datetime.date(2024, 3, 22),
-        departure_date_last=datetime.date(2024, 3, 26),
-        arrival_date_first=datetime.date(2024, 3, 22),
-        arrival_date_last=datetime.date(2024, 3, 26),
+        arrival_city="ALC",
+        departure_date_first=datetime.date(2024, 8, 19),
+        departure_date_last=datetime.date(2024, 8, 26),
+        arrival_date_first=datetime.date(2024, 8, 19),
+        arrival_date_last=datetime.date(2024, 8, 26),
         # departure_date_first=datetime.date(2024, 3, 1),
         # departure_date_last=datetime.date(2024, 3, 30),
         # arrival_date_first=datetime.date(2024, 3, 1),
         # arrival_date_last=datetime.date(2024, 3, 30),
-        min_days_stay=2,
-        airport_radius=100,
+        min_days_stay=6,
+        departure_airport_radius=100,
+        arrival_airport_radius=10,
         # available_departure_weekdays=(4, 5),
         # available_arrival_weekdays=(6, 0, 1)
         # max_price_per_flight=25
@@ -78,9 +79,6 @@ def testing():
     print(time.time() - start_time)
     print("Volotea done scraping")
     print()
-
-
-
 
     ## layover flights ##
 

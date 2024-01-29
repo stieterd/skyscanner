@@ -220,7 +220,7 @@ class Vueling(BaseScraper):
                 if connection == "PAR":
                     connection = "CDG"
 
-                if request.arrival_city and not Airport.airports_in_radius(connection, request.arrival_city, request.airport_radius):
+                if request.arrival_city and not Airport.airports_in_radius(connection, request.arrival_city, request.departure_airport_radius):
                     continue
 
                 threads.append(executor.submit(self.get_possible_flight, connection, connection_row['Airport'], request))

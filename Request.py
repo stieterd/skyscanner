@@ -32,7 +32,8 @@ class Request:
 
     days_stay: int
 
-    airport_radius: float  # in kilometers
+    departure_airport_radius: float  # in kilometers
+    arrival_airport_radius: float  # in kilometers
 
     max_travel_time: datetime.time
     earliest_travel_time: datetime.time
@@ -63,7 +64,9 @@ class Request:
                  available_departure_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
                  available_arrival_weekdays: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
 
-                 airport_radius: float = 0,
+                 departure_airport_radius: float = 0,
+                 arrival_airport_radius: float = 0,
+
                  max_travel_time: datetime.time = None,  # TODO: add this one
                  earliest_travel_time: datetime.time = None,  # TODO: add this one
                  latest_travel_time: datetime.time = None,  # TODO: add this one
@@ -106,10 +109,15 @@ class Request:
         self.available_departure_weekdays = available_departure_weekdays
         self.available_arrival_weekdays = available_arrival_weekdays
 
-        if airport_radius is None:
-            self.airport_radius = 0
+        if departure_airport_radius is None:
+            self.departure_airport_radius = 0
         else:
-            self.airport_radius = airport_radius
+            self.departure_airport_radius = departure_airport_radius
+
+        if arrival_airport_radius is None:
+            self.arrival_airport_radius = 0
+        else:
+            self.arrival_airport_radius = arrival_airport_radius
 
         self.max_travel_time = max_travel_time
         self.earliest_travel_time = earliest_travel_time
@@ -136,10 +144,10 @@ class Request:
             iata = self.departure_city
             departure_airports_df = Airport.get_airports_by_iata(iata)
 
-            if self.airport_radius > 0:
+            if self.departure_airport_radius > 0:
                 lat = departure_airports_df.at[0, 'lat']
                 long = departure_airports_df.at[0, 'lon']
-                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+                return Airport.get_airports_by_radius(long, lat, self.departure_airport_radius)
 
             else:
                 return departure_airports_df
@@ -161,10 +169,10 @@ class Request:
             iata = self.arrival_city
             departure_airports_df = Airport.get_airports_by_iata(iata)
 
-            if self.airport_radius > 0:
+            if self.departure_airport_radius > 0:
                 lat = departure_airports_df.at[0, 'lat']
                 long = departure_airports_df.at[0, 'lon']
-                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+                return Airport.get_airports_by_radius(long, lat, self.departure_airport_radius)
 
             else:
                 return departure_airports_df
@@ -186,10 +194,10 @@ class Request:
             iata = self.arrival_city
             arrival_airports_df = Airport.get_airports_by_iata(iata)
 
-            if self.airport_radius > 0:
+            if self.arrival_airport_radius > 0:
                 lat = arrival_airports_df.at[0, 'lat']
                 long = arrival_airports_df.at[0, 'lon']
-                return Airport.get_airports_by_radius(long, lat, self.airport_radius)
+                return Airport.get_airports_by_radius(long, lat, self.departure_airport_radius)
 
             else:
                 return arrival_airports_df

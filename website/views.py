@@ -91,6 +91,8 @@ def show_results(triage_id):
     global flight
     if request.method == 'GET':
 
+        sort = request.args.get('sort')
+
         p = Triage.query.filter_by(id=triage_id).first()
         content_dict = json.loads(p.content, object_hook=date_hook)
 
@@ -115,6 +117,11 @@ def show_results(triage_id):
         filtered_flight = flight.filter_flights(flight_request)
 
         result_df = filtered_flight.get_possible_return_flights_df(flight_request)
+        if sort != None:
+            try:
+                result_df.sort_values([sort, 'total_cost'], ascending=[True, True], inplace=True)
+            except Exception as e:
+                pass
         # result_group = result_df.groupby('hash_x')
         # result_dict = result_group.apply(lambda x: x.to_dict(orient='records')).to_dict()
 

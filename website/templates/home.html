@@ -1,14 +1,22 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 align="center">Triages</h1>
-<ul class="list-group list-group-flush" id="triages">
-    {% for triage in user.triages%}
-    <a class="list-group-item" href="{{ url_for('views.triage', triage_id=triage.id) }}">
-        {{ triage.data}} #{{ loop.index }}
-        <a href="deleteTriage/{{ triage.id }}">
-          <span aria-hidden="true">&times;</span>
-        </a>
-      </a>
-    {% endfor %}
-</ul>
-{%endblock%}
+<div class="container mt-4">
+
+    <div class="text-center mb-3">
+        <a class="btn btn-primary btn-lg" id="triage" href="/addTriage">Zoek een vlucht</a>
+    </div>
+    <ul class="list-group" id="triages">
+        {% for triage in user.triages %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('views.triage', triage_id=triage.id) }}" class="text-decoration-none">
+                    {{ triage.data }} #{{ loop.index }}
+                </a>
+                <a href="deleteTriage/{{ triage.id }}" class="text-danger" onclick="return confirm('Are you sure you want to delete this triage?');">
+                    <span aria-hidden="true">&times;</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

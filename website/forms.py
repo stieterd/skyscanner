@@ -26,7 +26,7 @@ class RequestForm(FlaskForm):
     max_days_stay = IntegerField('Maximum days stay (Optional)',
                                  validators=[Optional(), NumberRange(min=1, message="Minimum 1 day")])
 
-    airport_radius = IntegerField('Airport radius (km) (Optional)',
+    departure_airport_radius = IntegerField('Airport radius (km) (Optional)',
                                   validators=[Optional(), NumberRange(min=0, message="Minimum 0 km")])
 
     max_price_per_flight = IntegerField("Max price flight (euro) (Optional)", validators=[Optional(), NumberRange(min=20, message="Minimum 20 euro")])

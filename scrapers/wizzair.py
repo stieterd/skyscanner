@@ -259,7 +259,7 @@ class WizzAir(BaseScraper):
 
                 if request.arrival_city:
                     connections = [connection for connection in filter(
-                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius),
+                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.departure_airport_radius),
                         connections)]
 
                 for connection in connections:

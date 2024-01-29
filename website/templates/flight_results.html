@@ -1,62 +1,110 @@
-<html>
-<head></head>
-<body>
-<br/>
-    <h1>Outbound Flights</h1>
-    <table  style="border:1px solid black; width:90%;">
-        <thead>
-            <tr>
-                <th scope="col" style="padding:15px;">Departure Station Outbound</th>
-                <th scope="col" style="padding:15px;">Arrival Station Outbound</th>
-                <th scope="col" style="padding:15px;">Departure Station Inbound</th>
-                <th scope="col" style="padding:15px;">Arrival Station Inbound</th>
+{% extends "base.html" %}
 
-                <th scope="col" style="padding:15px;">Departure Date Outbound</th>
-                <th scope="col" style="padding:15px;">Arrival Date Outbound</th>
-                <th scope="col" style="padding:15px;">Departure Date Inbound</th>
-                <th scope="col" style="padding:15px;">Arrival Date Inbound</th>
+{% block content %}
+    <style>
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+        }
 
-                <th scope="col" style="padding:15px;">Price Outbound</th>
-                <th scope="col" style="padding:15px;">Price Inbound</th>
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
 
-                <th scope="col" style="padding:15px;">Company Outbound</th>
-                <th scope="col" style="padding:15px;">Company Inbound</th>
-                <th scope="col" style="padding:15px;">URL Outbound</th>
-                <th scope="col" style="padding:15px;">URL Inbound</th>
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+        }
 
-                <th scope="col" style="padding:15px;">Total Cost</th>
-            </tr>
-        </thead>
-        <tbody>
+        tr:hover {
+            background-color: #e6e6e6;
+        }
 
-            {% for flight in flights %}
+        a {
+            text-decoration: none;
+            color: #3498db;
+        }
 
-            <tr>
-                <td style="padding:15px;">{{ flight.departureStation_x }} <br> ({{ flight.departureCountryCode_x }})</td>
-                <td style="padding:15px;">{{ flight.arrivalStation_x }} <br> ({{ flight.arrivalCountryCode_x }})</td>
-                <td style="padding:15px;">{{ flight.departureStation_y }} <br> ({{flight.departureCountryCode_y}})</td>
-                <td style="padding:15px;">{{ flight.arrivalStation_y }} <br> ({{flight.arrivalCountryCode_y}})</td>
+        a:hover {
+            color: #217dbb;
+        }
 
-                <td style="padding:15px;">{{ flight.departureDate_x.strftime('%Y-%m-%d %H:%M')  }}</td>
-                <td style="padding:15px;">{{ flight.arrivalDate_x.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td style="padding:15px;">{{ flight.departureDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td style="padding:15px;">{{ flight.arrivalDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
+        .container, table {
+            width: 100%;
+            margin-top: 10px;
+        }
 
-                <td style="padding:15px;">€{{ '%0.2f'| format(flight.price_x|float) }}</td>
-                <td style="padding:15px;">€{{ '%0.2f'| format(flight.price_y|float) }}</td>
+        .table-container {
+            overflow-x: auto;
+        }
 
-                <td style="padding:15px;">{{ flight.company_x }}</td>
-                <td style="padding:15px;">{{ flight.company_y }}</td>
+        .container, h1, th {
+            margin-left: 0;
+        }
 
-                <td style="padding:15px;"><a href="{{ flight.ticketUrl_x }}">press me</a></td>
-                <td style="padding:15px;"><a href="{{ flight.ticketUrl_y }}">press me</a></td>
+    </style>
 
-                <td style="padding:15px;">€{{ '%0.2f'| format(flight.total_cost|float) }}</td>
-            </tr>
 
-            {% endfor %}
-        </tbody>
-    </table>
-<br />
-</body>
-</html>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th><a href="?sort=departureStation_x">Departure Station Outbound</a></th>
+                    <th><a href="?sort=arrivalStation_x">Arrival Station Outbound</a></th>
+                    <th><a href="?sort=departureStation_y">Departure Station Inbound</a></th>
+                    <th><a href="?sort=arrivalStation_y">Arrival Station Inbound</a></th>
+
+                    <th><a href="?sort=departureDate_x">Departure Date Outbound</a></th>
+                    <th><a href="?sort=arrivalDate_x">Arrival Date Outbound</a></th>
+                    <th><a href="?sort=departureDate_y">Departure Date Inbound</a></th>
+                    <th><a href="?sort=arrivalDate_y">Arrival Date Inbound</a></th>
+
+                    <th><a href="?sort=price_x">Price Outbound</a></th>
+                    <th><a href="?sort=price_y">Price Inbound</a></th>
+
+                    <th><a href="?sort=company_x">Company Outbound</a></th>
+                    <th><a href="?sort=company_y">Company Inbound</a></th>
+                    <th><a href="#">URL Outbound</a></th>
+                    <th><a href="#">URL Inbound</a></th>
+
+                    <th><a href="?sort=total_cost">Total Cost</a></th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for flight in flights %}
+
+                <tr>
+                    <td>{{ flight.departureStation_x }} <br> ({{ flight.departureCountryCode_x }})</td>
+                    <td>{{ flight.arrivalStation_x }} <br> ({{ flight.arrivalCountryCode_x }})</td>
+                    <td>{{ flight.departureStation_y }} <br> ({{ flight.departureCountryCode_y }})</td>
+                    <td>{{ flight.arrivalStation_y }} <br> ({{ flight.arrivalCountryCode_y }})</td>
+
+                    <td>{{ flight.departureDate_x.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ flight.arrivalDate_x.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ flight.departureDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ flight.arrivalDate_y.strftime('%Y-%m-%d %H:%M') }}</td>
+
+                    <td>€{{ '%0.2f'| format(flight.price_x|float) }}</td>
+                    <td>€{{ '%0.2f'| format(flight.price_y|float) }}</td>
+
+                    <td>{{ flight.company_x }}</td>
+                    <td>{{ flight.company_y }}</td>
+
+                    <td><a href="{{ flight.ticketUrl_x }}" target="_blank" rel="noopener noreferrer">View</a></td>
+                    <td><a href="{{ flight.ticketUrl_y }}" target="_blank" rel="noopener noreferrer">View</a></td>
+
+                    <td>€{{ '%0.2f'| format(flight.total_cost|float) }}</td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

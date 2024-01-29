@@ -228,7 +228,7 @@ class EasyJet(BaseScraper):
                 connection = connection_row['connection']
 
                 if request.arrival_city and not Airport.airports_in_radius(connection, request.arrival_city,
-                                                                           request.airport_radius):
+                                                                           request.departure_airport_radius):
                     continue
 
                 threads.append(

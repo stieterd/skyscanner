@@ -239,7 +239,7 @@ class RyanAir(BaseScraper):
                 routes = [x.split('airport:')[1] for x in filter(lambda x: 'airport' in x, connection_row['routes'])]
                 if request.arrival_city:
                     routes = [connection for connection in filter(
-                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.airport_radius), routes)]
+                        lambda x: Airport.airports_in_radius(x, request.arrival_city, request.departure_airport_radius), routes)]
 
                 for connection in routes:
                     threads.append(
