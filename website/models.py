@@ -15,3 +15,26 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(150))
     key = db.Column(db.String(150))
     triages = db.relationship('Triage')
+
+class Flight(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    departureStation = db.Column(db.String(3), nullable=False)
+    arrivalStation = db.Column(db.String(3), nullable=False)
+    departureCountryCode = db.Column(db.String(2), nullable=False)
+    arrivalCountryCode = db.Column(db.String(2), nullable=False)
+
+    departureDate = db.Column(db.DateTime, nullable=False)
+    arrivalDate = db.Column(db.DateTime, nullable=False)
+
+    departureDay = db.Column(db.DateTime, nullable=True)
+    arrivalDay = db.Column(db.DateTime, nullable=True)
+
+    price = db.Column(db.Numeric(precision=10, scale=2), nullable=False)
+    currencyCode = db.Column(db.String(5), nullable=False)
+
+    company = db.Column(db.String(30), nullable=False)
+
+    scrapeDate = db.Column(db.DateTime, nullable=False)
+    ticketUrl = db.Column(db.String(300))
+    hash = db.Column(db.Integer)
