@@ -9,7 +9,7 @@ DB_NAME = "flights"
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = '\x15\xcf\xda\x9e\xa1)\x0f\xe5_\x86\xf4p"\xcbH\x81\xbd\xd6q\xc3\x95\xa2b\x86'
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://stieterd:Walvis12@localhost/{DB_NAME}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://stieterd:Walvis12@localhost/{DB_NAME}'
     db.init_app(app)
 
     from .views import views
