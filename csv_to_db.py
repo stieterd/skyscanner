@@ -42,8 +42,8 @@ def filter_price_change(group):
 outbound_dfs = []
 return_dfs = []
 
-for filename in os.listdir("."):
-    f = os.path.join(filename)
+for filename in os.listdir("output_data"):
+    f = "output_data/" + os.path.join(filename)
     # checking if it is a file
     if not os.path.isfile(f):
         print(f)
