@@ -27,7 +27,7 @@ def get_flights():
         departure_date_last=datetime.datetime.now().date() + relativedelta(months=+9),
         arrival_date_first=datetime.datetime.now().date(),
         arrival_date_last=datetime.datetime.now().date() + relativedelta(months=+9),
-        departure_airport_radius=400,
+        departure_airport_radius=200,
         arrival_airport_radius=100
         # max_price_per_flight=25
     )
@@ -104,7 +104,6 @@ def get_flights():
 
 
 if __name__ == "__main__":
-    Proxy.next_proxy()
     begin_time = 0
     while True:
         if time.time() - begin_time > 60 * 60:
