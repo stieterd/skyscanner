@@ -57,12 +57,15 @@ for filename in os.listdir("output_data"):
                 if 'scrapeDate' in df.columns and 'hash' in df.columns:
                     df.to_sql('flight', engine, index=False, if_exists='append')
             except Exception as e:
-                df = pd.read_csv(f).dropna(axis=1, how='all')
-                # outbound_dfs.append(pd.read_csv(f).dropna(axis=1, how='all'))
-                if 'scrapeDate' in df.columns and 'hash' in df.columns:
-                    df = df[df['departureStation'] != ""]
-                    df = df[~df['scrapeDate'].isnull()]
-                    df.to_sql('flight', engine, index=False, if_exists='append')
+                try:
+                    df = pd.read_csv(f).dropna(axis=1, how='all')
+                    # outbound_dfs.append(pd.read_csv(f).dropna(axis=1, how='all'))
+                    if 'scrapeDate' in df.columns and 'hash' in df.columns:
+                        df = df[df['departureStation'] != ""]
+                        df = df[~df['scrapeDate'].isnull()]
+                        df.to_sql('flight', engine, index=False, if_exists='append')
+                except Exception as e:
+                    pass
 
 
         elif 'return' in f:
@@ -73,12 +76,15 @@ for filename in os.listdir("output_data"):
                 if 'scrapeDate' in df.columns and 'hash' in df.columns:
                     df.to_sql('flight', engine, index=False, if_exists='append')
             except Exception as e:
-                df = pd.read_csv(f).dropna(axis=1, how='all')
-                # outbound_dfs.append(pd.read_csv(f).dropna(axis=1, how='all'))
-                if 'scrapeDate' in df.columns and 'hash' in df.columns:
-                    df = df[df['departureStation'] != ""]
-                    df = df[~df['scrapeDate'].isnull()]
-                    df.to_sql('flight', engine, index=False, if_exists='append')
+                try:
+                    df = pd.read_csv(f).dropna(axis=1, how='all')
+                    # outbound_dfs.append(pd.read_csv(f).dropna(axis=1, how='all'))
+                    if 'scrapeDate' in df.columns and 'hash' in df.columns:
+                        df = df[df['departureStation'] != ""]
+                        df = df[~df['scrapeDate'].isnull()]
+                        df.to_sql('flight', engine, index=False, if_exists='append')
+                except Exception as e:
+                    pass
 
 exit()
 
