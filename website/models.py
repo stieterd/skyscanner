@@ -36,5 +36,5 @@ class Flight(db.Model):
     company = db.Column(db.String(30), nullable=False)
 
     scrapeDate = db.Column(db.DateTime, nullable=False)
-    ticketUrl = db.Column(db.String(300))
+    ticketUrl = db.Column(db.String(500))
     hash = db.Column(db.String(30))
