@@ -31,6 +31,9 @@ class Flight:
             outbound_flights['hash'] = outbound_flights.apply(lambda x: hash(
                 tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
 
+            outbound_flights['direction'] = 0
+            outbound_flights['type'] = 0
+
         if not inbound_flights.empty:
             inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
             inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
@@ -42,6 +45,9 @@ class Flight:
 
             inbound_flights['hash'] = inbound_flights.apply(lambda x: hash(
                 tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+
+            inbound_flights['direction'] = 1
+            inbound_flights['type'] = 0
 
         self.return_flights = inbound_flights.reset_index(drop=True)
         self.outbound_flights = outbound_flights.reset_index(drop=True)

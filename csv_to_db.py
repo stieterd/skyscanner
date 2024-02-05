@@ -3,9 +3,9 @@ import os
 import matplotlib.pyplot as plt
 from datetime import datetime
 from sqlalchemy import create_engine
+from settings import DB_NAME,IP_ADDRESS
 
-DB_NAME = "flights"
-engine = create_engine(f"mysql+pymysql://root:Walvis12@107.172.63.184/{DB_NAME}")
+engine = create_engine(f"mysql+pymysql://root:Walvis12@{IP_ADDRESS}/{DB_NAME}")
 
 # df1 = pd.read_csv("outbound_2024-01-16-12.csv", index_col=False).iloc[: , 1:]
 # # df1.to_sql('flight', engine, index=False, if_exists='replace')
@@ -63,6 +63,8 @@ for filename in os.listdir("output_data"):
                     if 'scrapeDate' in df.columns and 'hash' in df.columns:
                         df = df[df['departureStation'] != ""]
                         df = df[~df['scrapeDate'].isnull()]
+                        df['type'] = 0
+                        df['direction'] = 0
                         df.to_sql('flight', engine, index=False, if_exists='append')
                 except Exception as e:
                     pass
@@ -82,6 +84,8 @@ for filename in os.listdir("output_data"):
                     if 'scrapeDate' in df.columns and 'hash' in df.columns:
                         df = df[df['departureStation'] != ""]
                         df = df[~df['scrapeDate'].isnull()]
+                        df['type'] = 0
+                        df['direction'] = 1
                         df.to_sql('flight', engine, index=False, if_exists='append')
                 except Exception as e:
                     pass

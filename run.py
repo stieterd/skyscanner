@@ -6,17 +6,19 @@ from scrapers.wizzair import WizzAir
 from scrapers.ryanair import RyanAir
 from scrapers.easyjet import EasyJet
 from scrapers.transavia import Transavia
-
 from Request import Request
 import pandas as pd
 from Flight import Flight
 from Proxy import Proxy
-
+from settings import DB_NAME
+from sqlalchemy import create_engine
 import time
 import datetime
 from dateutil.relativedelta import relativedelta
 
 DIRECTORY = "output_data"
+
+engine = create_engine(f"mysql+pymysql://root:Walvis12@107.172.63.184/{DB_NAME}")
 
 def get_flights():
     request = Request(
@@ -113,5 +115,8 @@ if __name__ == "__main__":
 
             flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv", index=False)
             flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv", index=False)
+            
+            flights.outbound_flights.to_sql('flight', engine, index=False, if_exists='append')
+            flights.return_flights.to_sql('flight', engine, index=False, if_exists='append')
 
             Proxy.next_proxy()

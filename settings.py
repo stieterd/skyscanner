@@ -1,0 +1,2 @@
+DB_NAME = "flights"
+IP_ADDRESS = '107.172.63.184'
