@@ -35,6 +35,7 @@ class EasyJet(BaseScraper):
     }
 
     timeout = 5
+    verify = True
 
     def __init__(self):
 
@@ -69,7 +70,7 @@ class EasyJet(BaseScraper):
 
         proxy = super().get_proxy()
         print(proxy)
-        r = requests.get(url, proxies=proxy, headers=headers, timeout=5)
+        r = requests.get(url, proxies=proxy, headers=headers, timeout=5, verify=self.verify)
         print(r.status_code)
         pattern = pattern = r'angularEjModule\.constant\("Sitecore_RoutesData",\s*(.*?)\s*\);'
         matches = re.search(pattern, r.text, re.DOTALL)
@@ -100,7 +101,7 @@ class EasyJet(BaseScraper):
 
 
         try:
-            r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
+            r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout, verify=self.verify)
             availability_outbound = pd.DataFrame(r.json()['data']['availability']['outbound'])
             availability_outbound['date'] = pd.to_datetime(availability_outbound['date'])
             availability_return = pd.DataFrame(r.json()['data']['availability']['homebound'])
@@ -141,7 +142,7 @@ class EasyJet(BaseScraper):
             def run(flip=False):
 
                 try:
-                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
+                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout, verify=self.verify)
                     fares_outbound.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
                     if flip:
@@ -160,7 +161,7 @@ class EasyJet(BaseScraper):
             def run(flip=False):
 
                 try:
-                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout)
+                    r = requests.get(url, proxies=proxy, headers=headers, timeout=self.timeout, verify=self.verify)
                     fares_return.extend(r.json()['data']['searchOutbound']['offers'])
                 except Exception as e:
                     if flip:
