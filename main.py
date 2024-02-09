@@ -1,9 +1,9 @@
-from website import create_app
-from website import db
+
+from website import db, app
 import time
 import datetime
 
-app = create_app()
+
 
 @app.template_filter('ctime')
 def timectime(s):

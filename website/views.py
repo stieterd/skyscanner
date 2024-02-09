@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, jsonify, redirect, url_for
 from flask_login import login_required, current_user
 from .models import Triage
-from . import db
+from . import db, app
 import json
 import datetime
 from .forms import RequestForm
@@ -36,10 +36,10 @@ flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
 
 def threaded_func():
     global flight
-
-    with db.engine.connect() as conn:
-        result = conn.execute(
-            text("SELECT * FROM flight WHERE scrapeDate = (SELECT MAX(scrapeDate) FROM flight) ORDER BY price;"))
+    with app.app_context():
+        with db.engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT * FROM flight WHERE scrapeDate = (SELECT MAX(scrapeDate) FROM flight) ORDER BY price;"))
 
     rows = result.fetchall()
     columns = result.keys()
