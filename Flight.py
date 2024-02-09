@@ -17,40 +17,43 @@ class Flight:
 
     airport = Airport()
 
-    def __init__(self, outbound_flights: pd.DataFrame, inbound_flights: pd.DataFrame) -> None:
+    def __init__(self, outbound_flights: pd.DataFrame, inbound_flights: pd.DataFrame, old=False) -> None:
+        if old:
+            self.outbound_flights = outbound_flights
+            self.return_flights = inbound_flights
+        else:
+            if not outbound_flights.empty:
+                outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
+                outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'])
+                outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
+                outbound_flights['departureDay'] = pd.to_datetime(outbound_flights['departureDay'])
 
-        if not outbound_flights.empty:
-            outbound_flights['departureDate'] = pd.to_datetime(outbound_flights['departureDate'])
-            outbound_flights['arrivalDate'] = pd.to_datetime(outbound_flights['arrivalDate'])
-            outbound_flights['departureDay'] = outbound_flights['departureDate'].dt.date
-            outbound_flights['departureDay'] = pd.to_datetime(outbound_flights['departureDay'])
+                outbound_flights['scrapeDate'] = datetime.datetime.now()
+                outbound_flights['scrapeDate'] = pd.to_datetime(outbound_flights['scrapeDate'])
 
-            outbound_flights['scrapeDate'] = datetime.datetime.now()
-            outbound_flights['scrapeDate'] = pd.to_datetime(outbound_flights['scrapeDate'])
+                outbound_flights['hash'] = outbound_flights.apply(lambda x: hash(
+                    tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
 
-            outbound_flights['hash'] = outbound_flights.apply(lambda x: hash(
-                tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+                outbound_flights['direction'] = 0
+                outbound_flights['type'] = 0
 
-            outbound_flights['direction'] = 0
-            outbound_flights['type'] = 0
+            if not inbound_flights.empty:
+                inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
+                inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
+                inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
+                inbound_flights['departureDay'] = pd.to_datetime(inbound_flights['departureDay'])
 
-        if not inbound_flights.empty:
-            inbound_flights['departureDate'] = pd.to_datetime(inbound_flights['departureDate'])
-            inbound_flights['arrivalDate'] = pd.to_datetime(inbound_flights['arrivalDate'])
-            inbound_flights['departureDay'] = inbound_flights['departureDate'].dt.date
-            inbound_flights['departureDay'] = pd.to_datetime(inbound_flights['departureDay'])
+                inbound_flights['scrapeDate'] = datetime.datetime.now()
+                inbound_flights['scrapeDate'] = pd.to_datetime(inbound_flights['scrapeDate'])
 
-            inbound_flights['scrapeDate'] = datetime.datetime.now()
-            inbound_flights['scrapeDate'] = pd.to_datetime(inbound_flights['scrapeDate'])
+                inbound_flights['hash'] = inbound_flights.apply(lambda x: hash(
+                    tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
 
-            inbound_flights['hash'] = inbound_flights.apply(lambda x: hash(
-                tuple(x[['arrivalDate', 'departureDate', 'departureStation', 'arrivalStation', 'company']])), axis=1)
+                inbound_flights['direction'] = 1
+                inbound_flights['type'] = 0
 
-            inbound_flights['direction'] = 1
-            inbound_flights['type'] = 0
-
-        self.return_flights = inbound_flights.reset_index(drop=True)
-        self.outbound_flights = outbound_flights.reset_index(drop=True)
+            self.return_flights = inbound_flights.reset_index(drop=True)
+            self.outbound_flights = outbound_flights.reset_index(drop=True)
 
     def __add__(self, other: 'Flight'):
         if isinstance(other, Flight):

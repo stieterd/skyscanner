@@ -16,6 +16,8 @@ import os
 import pandas
 import time
 
+from sqlalchemy import text
+
 OUTPUT_DIR = "output_data"
 
 views = Blueprint('views', __name__)
@@ -35,17 +37,19 @@ flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
 def threaded_func():
     global flight
 
-    outputs = os.listdir(OUTPUT_DIR)
-    outbound_files = [file for file in outputs if file.startswith('outbound')]
-    return_files = [file for file in outputs if file.startswith('return')]
-    # Find the latest outbound file
-    latest_outbound = max(outbound_files,
-                          key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-    # Find the latest return file
-    latest_return = max(return_files,
-                        key=lambda x: datetime.datetime.strptime(x.split('_')[1], '%Y-%m-%d-%H.csv'))
-    flight = Flight(pandas.read_csv(f"{OUTPUT_DIR}/{latest_outbound}"),
-                    pandas.read_csv(f"{OUTPUT_DIR}/{latest_return}"))
+    with db.engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT * FROM flight WHERE scrapeDate = (SELECT MAX(scrapeDate) FROM flight) ORDER BY price;"))
+
+    rows = result.fetchall()
+    columns = result.keys()
+
+    all_flights = pandas.DataFrame(rows, columns=columns)
+
+    outbound_flights = all_flights[all_flights['direction'] == 0]
+    return_flights = all_flights[all_flights['direction'] == 1]
+
+    flight = Flight(outbound_flights, return_flights, old=True)
     # print(len(flight.outbound_flights))
     # print(len(flight.return_flights))
     # print(time.time())
@@ -53,7 +57,7 @@ def threaded_func():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=threaded_func, trigger="interval", seconds=60)
+scheduler.add_job(func=threaded_func, trigger="interval", seconds=300)
 scheduler.start()
 
 # Shut down the scheduler when exiting the app
@@ -113,6 +117,7 @@ def show_results(triage_id):
         if len(flight.outbound_flights) <= 0 and len(flight.return_flights) <= 0:
             return render_template('flight_results.html', flights=[],
                                    user=current_user)
+
 
         filtered_flight = flight.filter_flights(flight_request)
 
