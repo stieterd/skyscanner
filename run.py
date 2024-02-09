@@ -35,18 +35,18 @@ def get_flights():
     start_time = time.time()
     # companies = [RyanAir(), EasyJet(), WizzAir(), Vueling(), Volotea()]
     print("start")
-    # try:
-    #     ej = EasyJet()
-    #     result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
-    #
-    #     # result_flight_ej = Flight.empty_flight()
-    #     print(time.time() - start_time)
-    #     print("Easyjet done scraping")
-    #     print()
-    # except Exception as e:
-    #     print(e)
-    #     print("EasyJet failed")
-    #     result_flight_ej = Flight.empty_flight()
+    try:
+        ej = EasyJet()
+        result_flight_ej = sum(ej.get_possible_flights(request), start=Flight.empty_flight())
+
+        # result_flight_ej = Flight.empty_flight()
+        print(time.time() - start_time)
+        print("Easyjet done scraping")
+        print()
+    except Exception as e:
+        print(e)
+        print("EasyJet failed")
+        result_flight_ej = Flight.empty_flight()
 
     try:
         wa = WizzAir()
@@ -97,7 +97,7 @@ def get_flights():
         result_flight_ra = Flight.empty_flight()
 
     print(f"Done scraping companies: {time.time() - start_time}")
-    result_flights = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt #+ result_flight_ej
+    result_flights = result_flight_wa + result_flight_ra + result_flight_vu + result_flight_vt + result_flight_ej
     print(f"Finished {time.time() - start_time}")
 
     return result_flights
