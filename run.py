@@ -118,8 +118,6 @@ if __name__ == "__main__":
             flights.outbound_flights.to_csv(f"{DIRECTORY}/outbound_{cur_time_str}.csv", index=False)
             flights.return_flights.to_csv(f"{DIRECTORY}/return_{cur_time_str}.csv", index=False)
 
-
-
             flights.outbound_flights.to_sql('flight', engine, index=False, if_exists='append')
             flights.return_flights.to_sql('flight', engine, index=False, if_exists='append')
 

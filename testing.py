@@ -1,3 +1,5 @@
+import pandas
+
 from Airport import Airport
 from scrapers.volotea import Volotea
 
@@ -20,8 +22,10 @@ import concurrent
 import threading
 import json
 import time
-
+from scrapers.flightradar import FlightRadar
 # Function to encode python datetime objects to convert into the .json file
+
+
 
 def testing():
     start_time = time.time()
@@ -182,6 +186,12 @@ def testing():
 
 if __name__ == "__main__":
     testing()
+    # country_codes = pandas.Series(['dk', 'gb', 'es', 'ma', 'it', 'jo', 'nl', 'se', 'gr', 'de', 'fr', 'tr', 'ba', 'bg', 'cz', 'be', 'ch', 'sk', 'hu', 'pl', 'ro', 'hr', 'ie', 'pt', 'fi', 'rs', 'at', 'lt', 'cy', 'lu', 'mt', 'no', 'lv', 'me', 'al', 'ee', 'il'])
+    # airports = Airport.all_airports_df[Airport.all_airports_df['country'].str.lower().isin(country_codes)].reset_index(drop=True)['icao'].tolist()
+    #
+    # fr = FlightRadar()
+    #
+    # fr.get_route_data('EHEH')
 
     # https://www.ryanair.com/api/farfnd/v4/oneWayFares/DUB/AMS/cheapestPerDay?outboundMonthOfDate=2024-01-02&currency=EUR
 

@@ -46,19 +46,30 @@ class Vueling(BaseScraper):
         url = super().get_api_url('Markets', 'GetAllMarketsSearcher')
         proxies = Proxy.proxies_list
         r = None
-        for proxy in proxies:
-            proxy = {
-                'http': proxy,
-                'https': proxy
-            }
+        if len(proxies) > 0:
+            for proxy in proxies:
+                proxy = {
+                    'http': proxy,
+                    'https': proxy
+                }
+                try:
+                    r = requests.get(url, proxies=proxy, headers=self.headers)
+                    return r.json()
+                except Exception as e:
+                    print(e)
+                    print(traceback.format_exc())
+                    time.sleep(3)
+                    pass
+        else:
             try:
-                r = requests.get(url, proxies=proxy, headers=self.headers)
+                r = requests.get(url, headers=self.headers)
                 return r.json()
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
-                time.sleep(3)
+                # time.sleep(3)
                 pass
+
 
         raise VuelingApiCitiesNotFoundException("Vueling could not find the cities")
 

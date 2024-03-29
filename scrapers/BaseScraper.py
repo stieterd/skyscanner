@@ -41,6 +41,9 @@ class BaseScraper:
     def get_proxy(self):
         # return {"http": proxy, "https": proxy}
         caller_class = type(self).__name__
+        if True: # NEED NEW PROXIES FIRST
+            return None
+
         if caller_class == "EasyJet":
             return None
 

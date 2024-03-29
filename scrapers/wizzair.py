@@ -59,20 +59,32 @@ class WizzAir(BaseScraper):
         # proxy = super().get_proxy()
         proxies = Proxy.proxies_list
         r = None
-        for proxy in proxies:
-            proxy = {
-                  'http': proxy,
-                  'https': proxy
-                }
+        if len(proxies) > 0:
+            for proxy in proxies:
+                proxy = {
+                      'http': proxy,
+                      'https': proxy
+                    }
+                try:
+                    r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
+                    break
+                except Exception as e:
+                    print(e)
+                    print(traceback.format_exc())
+                    time.sleep(3)
+                    pass
+        else:
             try:
-                r = requests.get("https://wizzair.com/buildnumber", proxies=proxy, headers={
+                r = requests.get("https://wizzair.com/buildnumber", headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"})
-                break
+
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
-                time.sleep(3)
+                # time.sleep(3)
                 pass
+
         if r is None:
             raise WizzairApiVersionNotFoundException("Wizzair get buildnumber not working correctly")
         pattern = r'\bhttps://be\.wizzair\.com/(\d+\.\d+\.\d+)\b'
